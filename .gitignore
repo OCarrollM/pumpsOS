@@ -6,6 +6,7 @@
 *.ko
 *.obj
 *.elf
+*.bin
 
 # Linker output
 *.ilk
@@ -53,3 +54,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Others
+/build/
+/*.iso
+/*.img

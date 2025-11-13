@@ -1,0 +1,5 @@
+- [ ] Install Tools: qemu, nasm, gcc (fuck anything else)
+- [ ] Get minimal kernal to print smth ("I love pumps")
+- [ ] Make a bootable ISO with GRUB
+- [ ] MAKE interrups (chatGPT said to learn but I had Andrew Scott for this)
+- [ ] Implement a timer and context switch
