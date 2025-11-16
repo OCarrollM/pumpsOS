@@ -1,35 +1,112 @@
-// src/kernal.c
-#include <stdio.h>
+#include <stdbool.h>
 #include <stddef.h>
-#define COM1 0x3F8
-// Awesome sauce from Paul Dempster 2021
+#include <stdint.h>
 
-// VGA Text Buffer
-volatile __uint16_t* vga_buffer = (__uint16_t*)0xB8000;
-const size_t VGA_WIDTH = 80;
+/* Check if the compiler thinks we are looking for wrong OS */
+#if defined(__linux__)
+#error "You are not using a cross-compiler, sort it out"
+#endif
 
-static inline __uint16_t vga_entry(unsigned char ch, __uint8_t color) {
-    return (__uint16_t)ch | (__uint16_t)color << 8;
+#if !defined(__i386__)
+#error "This OS will need to be compiled with ix86-elf compiler"
+#endif
+
+/* Hardware colors */
+enum vga_color {
+    VGA_COLOR_BLACK = 0,
+    VGA_COLOR_BLUE = 1,
+    VGA_COLOR_GREEN = 2,
+    VGA_COLOR_CYAN = 3,
+    VGA_COLOR_RED = 4,
+    VGA_COLOR_MAGENTA = 5,
+    VGA_COLOR_BROWN = 6,
+    VGA_COLOR_LIGHT_GREY = 7,
+    VGA_COLOR_DARK_GREY = 8,
+    VGA_COLOR_LIGHT_BLUE = 9,
+    VGA_COLOR_LIGHT_GREEN = 10,
+    VGA_COLOR_LIGHT_CYAN = 11,
+    VGA_COLOR_LIGHT_RED = 12,
+    VGA_COLOR_LIGHT_MAGENTA = 13,
+    VGA_COLOR_LIGHT_BROWN = 14,
+    VGA_COLOR_WHITE = 15,
+};
+
+static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
+    return fg | bg << 4;
 }
 
-static inline void serial_write_char(char c) { 
-    while(!(*(volatile unsigned char *)(COM1 + 5) & 0x20 ));
-    *(volatile unsigned char *)(COM1) = c;
+static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
+    return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-static void serial_write(const char* str) {
-    for(size_t i=0; str[i]; i++) {
-        serial_write_char(str[i]);
+/* Here we are creating our own version of string length as we
+cannot use the standard C library. 
+
+This will need to be done for every addition we wish to use
+*/
+size_t strlen(const char* str) {
+    size_t len = 0;
+    while(str[len]) {
+        len++;
+    }
+    return len;
+}
+
+#define VGA_WIDTH       80
+#define VGA_HEIGHT      25
+#define VGA_MEMORY      0xB8000
+
+size_t terminal_row;
+size_t terminal_column;
+size_t terminal_color;
+uint16_t* terminal_buffer = (uint16_t*)VGA_MEMORY;
+
+void terminal_initilize(void) {
+    terminal_row = 0;
+    terminal_column = 0;
+    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+
+    for(size_t y = 0; y < VGA_HEIGHT; y++) {
+        for(size_t x = 0; x < VGA_WIDTH; x++) {
+            const size_t index = y * VGA_WIDTH + x;
+            terminal_buffer[index] = vga_entry(' ', terminal_color);
+        }
     }
 }
 
-void kernel_main(void) {
-    const char *msg = "I love Pumps, I also love baby flo but this is pumps tiny kernal";
-    serial_write(msg);
-    // simple loop
-    for(;;) { __asm__ ("hlt"); }
+void terminal_setcolor(uint8_t color) {
+    terminal_color = color;
 }
 
-// This is gonna write directly to a VGA text buffer
-// no bootloader code just kernal logic, pumps says we have to start
-// somewhere
+void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
+    const size_t index = y * VGA_WIDTH + x;
+    terminal_buffer[index] = vga_entry(c, color);
+}
+
+void terminal_putchar(char c) {
+    terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
+    if(++terminal_column == VGA_WIDTH) {
+        terminal_column = 0;
+        if(++terminal_row == VGA_HEIGHT) {
+            terminal_row = 0;
+        }
+    }
+}
+
+void terminal_write(const char* data, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+        terminal_putchar(data[i]);
+    }
+}
+
+void terminal_writestring(const char* data) {
+    terminal_write(data, strlen(data));
+}
+
+void kernel_main(void) {
+    /* Initialise terminal */
+    terminal_initilize();
+
+    /* Newline support needs to be added */
+    terminal_writestring("Hello, Pumps World!\n");
+}
