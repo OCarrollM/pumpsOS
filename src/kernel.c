@@ -83,14 +83,29 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
     terminal_buffer[index] = vga_entry(c, color);
 }
 
+// in terminal_putchar check if c == '\n' and 
+// increment terminal_row and reset terminal_column.
+
 void terminal_putchar(char c) {
-    terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
-    if(++terminal_column == VGA_WIDTH) {
-        terminal_column = 0;
+    // if(c == '\n') {
+    //     terminal_column = 0;
+    //     if(++terminal_row == VGA_HEIGHT) {
+    //         // Scrolling logic, I am saying that if the current row
+    //         // of the terminal exceeds our vga height then something
+    //         // needs to occur to enable some form of scrolling
+    //     }
+    // } 
+    // else {
+        terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
+    
+        if(++terminal_column == VGA_WIDTH) {
+            terminal_column = 0;
+        }
         if(++terminal_row == VGA_HEIGHT) {
+            // Scrolling also needs to happen here
             terminal_row = 0;
         }
-    }
+    // }
 }
 
 void terminal_write(const char* data, size_t size) {
@@ -108,5 +123,5 @@ void kernel_main(void) {
     terminal_initilize();
 
     /* Newline support needs to be added */
-    terminal_writestring("Hello, Pumps World!\n");
+    terminal_writestring("Hello, Pumps World! Are we on a new line");
 }
