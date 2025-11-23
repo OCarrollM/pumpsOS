@@ -83,21 +83,47 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
     terminal_buffer[index] = vga_entry(c, color);
 }
 
+// Terminal scroll function
+// If the terminal is filled (100 chars in a 10x10) then
+// move rows up by 1 and remove the top row that was there before
+// This is looping to HEIGHT - 1, copying the row to one before
+// then filles final row with empty spots
+
+void terminal_scroll() {
+    for(int i = 0; i < VGA_HEIGHT - 1; i++) { // eg: height = 10 so i will go 0 - 10
+        for(int j = 0; j < VGA_WIDTH; j++) { // eg: same for width
+            terminal_buffer[i * VGA_WIDTH + j] = terminal_buffer[(i + 1) * VGA_WIDTH + j];
+        }
+    }
+
+    // Clear the bottom line
+    for(int i = 0; i < VGA_WIDTH; i++) {
+        terminal_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + i] = vga_entry(' ', terminal_color);
+    }
+}
+
 // in terminal_putchar check if c == '\n' and 
 // increment terminal_row and reset terminal_column.
+
+// Will probbs needs to update this a lot
 
 void terminal_putchar(char c) {
 
     if(c == '\n'){
         ++terminal_row;
         terminal_column = 0;
+
+        if(terminal_row == VGA_HEIGHT) {
+            terminal_scroll();
+            terminal_row = VGA_HEIGHT - 1; // This keeps the insert on last row
+        }
     } else {
         terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
         if(++terminal_column == VGA_WIDTH) {
             terminal_column = 0;
             if(++terminal_row == VGA_HEIGHT) {
-                // Scrolling also needs to happen here
-                terminal_row = 0;
+                terminal_scroll();
+                terminal_row = VGA_HEIGHT - 1;
             }
         }
     }
@@ -118,6 +144,30 @@ void kernel_main(void) {
     /* Initialise terminal */
     terminal_initilize();
 
-    /* Newline support needs to be added */
-    terminal_writestring("Hello, Pumps World!\nAre we on a new line");
+    terminal_writestring("Line 1\n");
+    terminal_writestring("Line 2 I should be line 1\n");
+    terminal_writestring("Line 3\n");
+    terminal_writestring("Line 4\n");
+    terminal_writestring("Line 5\n");
+    terminal_writestring("Line 6\n");
+    terminal_writestring("Line 7\n");
+    terminal_writestring("Line 8\n");
+    terminal_writestring("Line 9\n");
+    terminal_writestring("Line 10\n");
+    terminal_writestring("Line 11\n");
+    terminal_writestring("Line 12\n");
+    terminal_writestring("Line 13\n");
+    terminal_writestring("Line 14\n");
+    terminal_writestring("Line 15\n");
+    terminal_writestring("Line 16\n");
+    terminal_writestring("Line 17\n");
+    terminal_writestring("Line 18\n");
+    terminal_writestring("Line 19\n");
+    terminal_writestring("Line 20\n");
+    terminal_writestring("Line 21\n");
+    terminal_writestring("Line 22\n");
+    terminal_writestring("Line 23\n");
+    terminal_writestring("Line 24\n");
+    terminal_writestring("Line 25\n");
+    terminal_writestring("Line 26\n"); // adding the \n makes it have the black line!
 }

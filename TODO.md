@@ -6,7 +6,7 @@
 
 ### From this point I discovered OSDevers forums and website and from here vow to only continue using this to develop my skills.
 
-- [ ] Add support for newline in terminal driver
+- [X] Add support for newline in terminal driver
 > I assume I need to do something similar to how strlen was implemented.
 
 > Right now I cannt handle newlines and apparently VGA does not render newlines rather they are logical entities. The tutorial states that in `terminal_putchar` I should check if the character is equal to \n and icnrement `terminal_row` and `terminal_column` from that.
