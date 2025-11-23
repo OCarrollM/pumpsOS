@@ -64,7 +64,7 @@ uint16_t* terminal_buffer = (uint16_t*)VGA_MEMORY;
 void terminal_initilize(void) {
     terminal_row = 0;
     terminal_column = 0;
-    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK); // text, background
 
     for(size_t y = 0; y < VGA_HEIGHT; y++) {
         for(size_t x = 0; x < VGA_WIDTH; x++) {
@@ -144,30 +144,17 @@ void kernel_main(void) {
     /* Initialise terminal */
     terminal_initilize();
 
-    terminal_writestring("Line 1\n");
-    terminal_writestring("Line 2 I should be line 1\n");
-    terminal_writestring("Line 3\n");
-    terminal_writestring("Line 4\n");
-    terminal_writestring("Line 5\n");
-    terminal_writestring("Line 6\n");
-    terminal_writestring("Line 7\n");
-    terminal_writestring("Line 8\n");
-    terminal_writestring("Line 9\n");
-    terminal_writestring("Line 10\n");
-    terminal_writestring("Line 11\n");
-    terminal_writestring("Line 12\n");
-    terminal_writestring("Line 13\n");
-    terminal_writestring("Line 14\n");
-    terminal_writestring("Line 15\n");
-    terminal_writestring("Line 16\n");
-    terminal_writestring("Line 17\n");
-    terminal_writestring("Line 18\n");
-    terminal_writestring("Line 19\n");
-    terminal_writestring("Line 20\n");
-    terminal_writestring("Line 21\n");
-    terminal_writestring("Line 22\n");
-    terminal_writestring("Line 23\n");
-    terminal_writestring("Line 24\n");
-    terminal_writestring("Line 25\n");
-    terminal_writestring("Line 26\n"); // adding the \n makes it have the black line!
+    terminal_setcolor(VGA_COLOR_LIGHT_RED);
+    terminal_writestring("                      /^--^\\     /^--^\\     /^--^\\\n");
+    terminal_writestring("                      \\____/     \\____/     \\____/\n");
+    terminal_setcolor(VGA_COLOR_LIGHT_MAGENTA);
+    terminal_writestring("                     /      \\   /      \\   /      \\\n");
+    terminal_writestring("                    |        | |        | |        |\n");
+    terminal_writestring("                     \\__  __/   \\__  __/   \\__  __/\n");
+    terminal_setcolor(VGA_COLOR_BROWN);
+    terminal_writestring("|^|^|^|^|^|^|^|^|^|^|^|^\\ \\^|^|^|^/ /^|^|^|^|^\\ \\^|^|^|^|^|^|^|^|^|^|^|^|\n");
+    terminal_writestring("| | | | | | | | | | | | |\\ \\| | |/ /| | | | | | \\ \\ | | | | | | | | | | |\n");
+    terminal_writestring("########################/ /######\\ \\###########/ /#######################\n");
+    terminal_writestring("| | | | | | | | | | | | \\/| | | | \\/| | | | | |\\/  | | | | | | | | | | | |\n");
+    terminal_writestring("|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|\n");
 }
