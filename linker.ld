@@ -19,6 +19,15 @@ SECTIONS {
         *(.text)
     }
 
+    /* .init and .fini for global con/destructors */
+    .init BLOCK(4K) : ALIGN(4K) {
+        *(.init)
+    }
+
+    .fini BLOCK(4K) : ALIGN(4K) {
+        *(.fini)
+    }
+
     /* Read-only */
     .rodata BLOCK(4K) : ALIGN(4K) {
         *(.rodata)
@@ -27,6 +36,23 @@ SECTIONS {
     /* Read-Write */
     .data BLOCK(4K) : ALIGN(4K) {
         *(.data)
+    }
+
+    /* constructors */
+    .ctors BLOCK(4K) : ALIGN(4K) {
+        *(.ctors)
+    }
+
+    /* destructors */
+    .dtors BLOCK(4K) : ALIGN(4K) {
+        *(.dtors)
+        PROVIDE(__DTOR_END__ = .);
+    }
+
+    /* Thread storage */
+    .tm_clone_table BLOCK(4K) : ALIGN(4K) {
+        *(.tm_clone_table)
+        PROVIDE(__TMC_END__ = .);
     }
 
     /* Read-Write and stack */

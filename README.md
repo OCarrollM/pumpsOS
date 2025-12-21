@@ -16,7 +16,5 @@ I am starting out by following and learning from OSDevers. The current source co
 
 final - It was literally windows but pumps based and straight out of the 90s
 
-## How this is going to work
-
-- Gonna use small commit names and branches (I hate trees)
-- docs/ showcase stuff
+Update Winter 2025 -
+    Back at it

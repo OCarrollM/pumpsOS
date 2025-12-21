@@ -45,6 +45,9 @@ _start:
     */
     mov $stack_top, %esp
 
+    /* Global constructors */
+    call _init
+
     /*
     Next we will initialize processor state. This will minimize
     early environments where features are usually offline

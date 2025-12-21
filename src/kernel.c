@@ -61,6 +61,13 @@ size_t terminal_column;
 size_t terminal_color;
 uint16_t* terminal_buffer = (uint16_t*)VGA_MEMORY;
 
+volatile bool constructor_ran = false;
+
+__attribute__((constructor))
+void test_constructor(void) {
+    constructor_ran = true;
+}
+
 void terminal_initilize(void) {
     terminal_row = 0;
     terminal_column = 0;
@@ -141,8 +148,13 @@ void terminal_writestring(const char* data) {
 }
 
 void kernel_main(void) {
-    /* Initialise terminal */
     terminal_initilize();
+    if(constructor_ran) {
+        terminal_writestring("Globals work\n");
+    } else {
+        terminal_writestring("Globals do not work\n");
+    }
+    /* Initialise terminal */
 
     terminal_setcolor(VGA_COLOR_LIGHT_RED);
     terminal_writestring("                      /^--^\\     /^--^\\     /^--^\\\n");
