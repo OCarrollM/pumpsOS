@@ -18,3 +18,49 @@ final - It was literally windows but pumps based and straight out of the 90s
 
 Update Winter 2025 -
     Back at it
+
+# Current Tree
+
+```bash
+.
+├── LICENSE
+├── Makefile
+├── README.md
+├── TODO.md
+├── build/
+│   ├── isodir/
+│   │   └── boot/
+│   │       ├── grub/
+│   │       │   └── grub.cfg
+│   │       └── myos.bin
+│   └── myos.iso
+├── docs/
+├── grub.cfg
+├── kernel/
+│   ├── Makefile
+│   ├── arch/
+│   │   └── i386/
+│   │       ├── boot.s
+│   │       ├── crti.s
+│   │       └── crtn.s
+│   ├── include/
+│   │   └── kernel/
+│   │       └── tty.h
+│   ├── kernel/
+│   │   ├── kernel.c
+│   │   └── tty.c
+│   └── linker.ld
+├── libc/
+│   ├── Makefile
+│   ├── include/
+│   │   ├── stdio.h
+│   │   └── string.h
+│   ├── stdio/
+│   │   └── putchar.c
+│   └── string/
+│       └── strlen.c
+└── sysroot/
+    └── usr/
+        ├── include/
+        └── lib/
+```

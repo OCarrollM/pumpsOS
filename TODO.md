@@ -8,5 +8,8 @@
 > I have 16 colours available. 8 for the background. But background can be fixed with a real VGA driver
 - [X] [Calling Global Constructors](https://wiki.osdev.org/Calling_Global_Constructors)
 - [ ] [Meaty Skeleton](https://wiki.osdev.org/Meaty_Skeleton)
+    - Renaming OS
+    - [Improving the build system](https://wiki.osdev.org/Hard_Build_System)
+    - [Stack Smash Protector](https://wiki.osdev.org/Stack_Smashing_Protector)
 - [ ] [Going Further on x86](https://wiki.osdev.org/Going_Further_on_x86)
 - [ ] Bare Bones II
