@@ -1,6 +1,6 @@
 # Prerequisites
 *.d
-*.kernel
+*.kernel 
 
 # Object files
 *.o
