@@ -27,40 +27,66 @@ Update Winter 2025 -
 ├── Makefile
 ├── README.md
 ├── TODO.md
-├── build/
-│   ├── isodir/
-│   │   └── boot/
-│   │       ├── grub/
-│   │       │   └── grub.cfg
-│   │       └── myos.bin
-│   └── myos.iso
-├── docs/
+├── build.sh
+├── clean.sh
+├── config.sh
+├── default-host.sh
 ├── grub.cfg
-├── kernel/
+├── headers.sh
+├── iso.sh
+├── kernel
 │   ├── Makefile
-│   ├── arch/
-│   │   └── i386/
+│   ├── arch
+│   │   └── i386
 │   │       ├── boot.s
 │   │       ├── crti.s
-│   │       └── crtn.s
-│   ├── include/
-│   │   └── kernel/
+│   │       ├── crtn.s
+│   │       ├── linker.ld
+│   │       ├── make.config
+│   │       ├── tty.c
+│   │       └── vga.h
+│   ├── include
+│   │   └── kernel
 │   │       └── tty.h
-│   ├── kernel/
-│   │   ├── kernel.c
-│   │   └── tty.c
-│   └── linker.ld
-├── libc/
+│   └── kernel
+│       └── kernel.c
+├── libc
 │   ├── Makefile
-│   ├── include/
+│   ├── arch
+│   │   └── i386
+│   │       └── make.config
+│   ├── include
 │   │   ├── stdio.h
-│   │   └── string.h
-│   ├── stdio/
-│   │   └── putchar.c
-│   └── string/
+│   │   ├── stdlib.h
+│   │   ├── string.h
+│   │   └── sys
+│   │       └── cdefs.h
+│   ├── stdio
+│   │   ├── printf.c
+│   │   ├── putchar.c
+│   │   └── puts.c
+│   ├── stdlib
+│   │   └── abort.c
+│   └── string
+│       ├── memcmp.c
+│       ├── memcpy.c
+│       ├── memmove.c
+│       ├── memset.c
 │       └── strlen.c
-└── sysroot/
-    └── usr/
-        ├── include/
-        └── lib/
+├── qemu.sh
+├── sysroot
+│   ├── boot
+│   │   └── myos.kernel
+│   └── usr
+│       ├── include
+│       │   ├── kernel
+│       │   │   └── tty.h
+│       │   ├── stdio.h
+│       │   ├── stdlib.h
+│       │   ├── string.h
+│       │   └── sys
+│       │       └── cdefs.h
+│       └── lib
+│           └── libk.a
+└── target-triplet-to-arch.sh
 ```

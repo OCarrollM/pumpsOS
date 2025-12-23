@@ -29,14 +29,14 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
-kernel/kernel.o \
+kernel/kernel.o
 
 OBJS=\
 $(ARCHDIR)/crti.o \
 $(ARCHDIR)/crtbegin.o \
 $(KERNEL_OBJS) \
 $(ARCHDIR)/crtend.o \
-$(ARCHDIR)/crtn.o \
+$(ARCHDIR)/crtn.o 
 
 LINK_LIST=\
 $(LDFLAGS) \
@@ -45,7 +45,7 @@ $(ARCHDIR)/crtbegin.o \
 $(KERNEL_OBJS) \
 $(LIBS) \
 $(ARCHDIR)/crtend.o \
-$(ARCHDIR)/crtn.o \
+$(ARCHDIR)/crtn.o 
 
 .PHONY: all clean install install-headers install-kernel
 .SUFFIXES: .o .c .s
@@ -60,7 +60,7 @@ $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
 .c.o:
-	$(CC) -MD -c $< -o $@ -std-gnu11 $(CFLAGS) $(CPPFLAGS)
+	$(CC) -MD -c $< -o $@ -std=gnu11 $(CFLAGS) $(CPPFLAGS)
 
 .S.o:
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
@@ -74,6 +74,10 @@ install: install-headers install-kernel
 
 install-headers:
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
-	cp myos.kernel $(DESDIR)$(BOOTDIR)
+	cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
+
+install-kernel: myos.kernel
+	mkdir -p $(DESTDIR)$(BOOTDIR)
+	cp myos.kernel $(DESTDIR)$(BOOTDIR)
 
 -include $(OBJS:.o=.d)

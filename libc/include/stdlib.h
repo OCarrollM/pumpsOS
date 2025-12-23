@@ -3,14 +3,14 @@
 
 #include <sys/cdefs.h>
 
-#ifndef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-    #endif
+#endif
 
-    __attribute__((__noreturn__))
-    void abort(void);
+__attribute__((__noreturn__))
+void abort(void);
 
-    #ifdef __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

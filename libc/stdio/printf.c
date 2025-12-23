@@ -10,8 +10,8 @@ static bool print(const char* data, size_t length) {
         if (putchar(bytes[i]) == EOF) {
             return false;
         }
-        return true;
     }
+    return true;
 }
 
 int printf(const char* restrict format, ...) {
