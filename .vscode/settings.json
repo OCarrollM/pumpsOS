@@ -2,5 +2,10 @@
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "stdint.h": "c"
+    },
+    "editor.quickSuggestions": {
+        "comments": "on",
+        "strings": "on",
+        "other": "on"
     }
 }

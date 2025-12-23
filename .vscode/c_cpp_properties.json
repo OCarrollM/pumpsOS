@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "i686-elf",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/libc/include",
+                "${workspaceFolder}/kernel/include",
+                "/home/ocarrollm/opt/cross/lib/gcc/i686-elf/14.1.0/include"
+            ],
+            "defines": ["__i386__"],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu99",
+            "intelliSenseMode": "linux-gcc-x86"
+        }
+    ],
+    "version": 4
+}
