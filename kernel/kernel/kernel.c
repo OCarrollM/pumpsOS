@@ -186,8 +186,30 @@ void __attribute__((noinline)) test_stack_smash(void) {
 
 void kernel_main(void) {
     terminal_initialize();
-    printf("Testing SSP\n");
-    test_stack_smash();
-    printf("SSP didn't work if we see this\n");
+    // printf("Testing SSP\n");
+    // test_stack_smash();
+    // printf("SSP didn't work if we see this\n");
     // ^ It worked as of 22:06:50 24/12/25
+
+    terminal_writestring("         *     ,MMM8&&&.            *\n");
+    terminal_writestring("              MMMM88&&&&&    .\n");
+    terminal_writestring("             MMMM88&&&&&&&\n");
+    terminal_writestring(" *           MMM88&&&&&&&&\n");
+    terminal_writestring("             MMM88&&&&&&&&\n");
+    terminal_writestring("             'MMM88&&&&&&'\n");
+    terminal_writestring("               'MMM8&&&'      *\n");
+    terminal_writestring("        |\\___/|\n");
+    terminal_writestring("        )     (             .              '\n");
+    terminal_writestring("       =\\     /=\n");
+    terminal_writestring("         )===(       *\n");
+    terminal_writestring("        /     \\\n");
+    terminal_writestring("        |     |\n");
+    terminal_writestring("       /       \\ \n");
+    terminal_writestring("       \\       /\n");
+    terminal_writestring("_/\\_/\\_/\\__  _/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_\n");
+    terminal_writestring("|  |  |  |( (  |  |  |  |  |  |  |  |  |  |\n");
+    terminal_writestring("|  |  |  | ) ) |  |  |  |  |  |  |  |  |  |\n");
+    terminal_writestring("|  |  |  |(_(  |  |  |  |  |  |  |  |  |  |\n");
+    terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
+    terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
 }
