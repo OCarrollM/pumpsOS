@@ -20,7 +20,7 @@ OBJ_LINK_LIST = $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(KERNEL_OBJS) $(CRTEND_OBJ) $(CRTN_
 
 .PHONY: all clean run iso
 
-all: myos.bin
+all: pumpsos.bin
 
 # Assemble
 boot.o: src/boot.s
@@ -37,21 +37,21 @@ kernel.o: src/kernel.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 # Link everything in the correct order
-myos.bin: $(CRTI_OBJ) $(KERNEL_OBJS) $(CRTN_OBJ)
+pumpsos.bin: $(CRTI_OBJ) $(KERNEL_OBJS) $(CRTN_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ_LINK_LIST) -lgcc
-	grub-file --is-x86-multiboot myos.bin
+	grub-file --is-x86-multiboot pumpsos.bin
 
 # Build ISO
-iso: myos.bin
+iso: pumpsos.bin
 	mkdir -p isodir/boot/grub
-	cp myos.bin isodir/boot/myos.bin
+	cp pumpsos.bin isodir/boot/pumpsos.bin
 	cp grub.cfg isodir/boot/grub/grub.cfg
-	grub-mkrescue -o myos.iso isodir
+	grub-mkrescue -o pumpsos.iso isodir
 
 # Build and run in QEMU
 run: iso
-	qemu-system-i386 -cdrom myos.iso
+	qemu-system-i386 -cdrom pumpsos.iso
 
 clean:
-	rm -f *.o myos.bin myos.iso
+	rm -f *.o pumpsos.bin pumpsos.iso
 	rm -rf isodir

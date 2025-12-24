@@ -8,4 +8,4 @@ done
 
 rm -rf SYSROOT
 rm -rf isodir
-rm -rf myos.iso
+rm -rf pumpsos.iso
