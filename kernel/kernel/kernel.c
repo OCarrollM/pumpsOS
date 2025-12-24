@@ -172,10 +172,22 @@
 // }
 
 #include <stdio.h>
+#include <string.h>
 
 #include <kernel/tty.h>
 
+// Function to purposely overflow the buffer
+void __attribute__((noinline)) test_stack_smash(void) {
+    char buffer[8];
+    memset(buffer, 'A', 64);
+}
+// Y'Know if it weren't for Matthew Bradburys Pen Test Module (442)
+// I'd have no idea what any of this meant.
+
 void kernel_main(void) {
     terminal_initialize();
-    printf("Hello, kernel World!\n");
+    printf("Testing SSP\n");
+    test_stack_smash();
+    printf("SSP didn't work if we see this\n");
+    // ^ It worked as of 22:06:50 24/12/25
 }
