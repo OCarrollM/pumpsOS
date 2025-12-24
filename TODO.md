@@ -1,15 +1,39 @@
-- [X] Add support for newline in terminal driver
-> I assume I need to do something similar to how strlen was implemented.
+# pumpsOS Development
 
-> Right now I cannt handle newlines and apparently VGA does not render newlines rather they are logical entities. The tutorial states that in `terminal_putchar` I should check if the character is equal to \n and icnrement `terminal_row` and `terminal_column` from that.
-- [X] Implement terminal scrolling
-> Move all the rows up by 1 if the terminal fills up rather than it resetting itself.
-- [X] Rendering some colorful ASCII art
-> I have 16 colours available. 8 for the background. But background can be fixed with a real VGA driver
-- [X] [Calling Global Constructors](https://wiki.osdev.org/Calling_Global_Constructors)
-- [ ] [Meaty Skeleton](https://wiki.osdev.org/Meaty_Skeleton)
-    - Renaming OS
-    - [Improving the build system](https://wiki.osdev.org/Hard_Build_System)
-    - [Stack Smash Protector](https://wiki.osdev.org/Stack_Smashing_Protector)
+## Completed
+
+- [x] Basic kernel with VGA text output
+- [x] Newline support in terminal driver
+- [x] Terminal scrolling
+- [x] Colour support and ASCII art rendering
+- [x] Global constructors
+- [x] Meaty Skeleton project structure
+- [x] Separated libc with printf, string functions
+
+## In Progress
+
+- [ ] [Improving the Build System](https://wiki.osdev.org/Hard_Build_System)
+- [ ] [Stack Smash Protector](https://wiki.osdev.org/Stack_Smashing_Protector)
+
+## Next Steps
+
 - [ ] [Going Further on x86](https://wiki.osdev.org/Going_Further_on_x86)
-- [ ] Bare Bones II
+  - [ ] Global Descriptor Table (GDT)
+  - [ ] Interrupt Descriptor Table (IDT)
+  - [ ] Programmable Interrupt Controller (PIC)
+  - [ ] Keyboard driver
+- [ ] Memory management
+  - [ ] Physical memory manager
+  - [ ] Paging
+- [ ] Basic shell
+
+## Future Ideas
+
+- [ ] File system (FAT12/16?)
+- [ ] User mode
+- [ ] System calls
+- [ ] Multitasking / scheduler
+
+## The End Result
+
+A windows/linux based OS 

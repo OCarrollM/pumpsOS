@@ -1,92 +1,53 @@
 # pumpsOS
 I am attempting at creating my own OS. This came to me from a dream that my cat was a programmer and made her own OS. This is my pure attempt at recreating her work
 
-## Goal 
-I am learning OS fundamentals. PumpsOS was too mainstream to make in one day but rome wasn't built in one day
+## About 
+This project is all about OS development and will be updated over a period of several months when time is on my side (Started Nov 2025).
 
-## Steps
-~~1. Repo
-2. Tooling
-3. Minimal Kernal
-4. Simple Boot
-5. Interupts, timer, scheduler (Thank you Andrew Scott)
-6. File system and shell (Getting there)~~
+I am following the [OSDev Wiki](https://wiki.osdev.org/) as a means of guidance and learning and as a challenge, restricting the use of AI to reinforce understanding and really put my programming knowledge to the test.
 
-I am starting out by following and learning from OSDevers. The current source code follows the Barebones tutorial + my own research through exercises found at (https://wiki.osdev.org/Bare_Bones)
+## Current Status
 
-final - It was literally windows but pumps based and straight out of the 90s
+- VGA text mode driver with colour support
+- Terminal scrolling and newline handling
+- Global constructors
+- A seperate kernel and libc (Guided by the Meaty Skeleton Architecture)
 
-Update Winter 2025 -
-    Back at it
+## Building
+As of commit `43dd352` (and presumebly later commits as I would rather commit working builds) it is possible to run this project yourself.
 
-# Current Tree
+You **must** have a cross compiler, ideally i686-elf. See [GCC Cross-Compiler](https://wiki.osdev.org/GCC_Cross-Compiler) for assistance and instructions. 
+
+Once done. You can run
+```bash
+./clean.sh          # Cleans build
+./headers.sh        # Installs headers to sysroot
+./iso.sh            # Builds an ISO image
+./qemu.sh           # Builds and runs in QEMU
+```
+
+## Current Structure
 
 ```bash
-.
-├── LICENSE
-├── Makefile
-├── README.md
-├── TODO.md
-├── build.sh
-├── clean.sh
-├── config.sh
-├── default-host.sh
-├── grub.cfg
-├── headers.sh
-├── iso.sh
-├── kernel
-│   ├── Makefile
-│   ├── arch
-│   │   └── i386
-│   │       ├── boot.s
-│   │       ├── crti.s
-│   │       ├── crtn.s
-│   │       ├── linker.ld
-│   │       ├── make.config
-│   │       ├── tty.c
-│   │       └── vga.h
-│   ├── include
-│   │   └── kernel
-│   │       └── tty.h
-│   └── kernel
-│       └── kernel.c
-├── libc
-│   ├── Makefile
-│   ├── arch
-│   │   └── i386
-│   │       └── make.config
-│   ├── include
-│   │   ├── stdio.h
-│   │   ├── stdlib.h
-│   │   ├── string.h
-│   │   └── sys
-│   │       └── cdefs.h
-│   ├── stdio
-│   │   ├── printf.c
-│   │   ├── putchar.c
-│   │   └── puts.c
-│   ├── stdlib
-│   │   └── abort.c
-│   └── string
-│       ├── memcmp.c
-│       ├── memcpy.c
-│       ├── memmove.c
-│       ├── memset.c
-│       └── strlen.c
-├── qemu.sh
-├── sysroot
-│   ├── boot
-│   │   └── myos.kernel
-│   └── usr
-│       ├── include
-│       │   ├── kernel
-│       │   │   └── tty.h
-│       │   ├── stdio.h
-│       │   ├── stdlib.h
-│       │   ├── string.h
-│       │   └── sys
-│       │       └── cdefs.h
-│       └── lib
-│           └── libk.a
-└── target-triplet-to-arch.sh
+pumpsOS/
+├── kernel/           # Kernel source code
+│   ├── arch/i386/    # Architecture-specific code (boot, tty, linker)
+│   ├── include/      # Kernel headers
+│   └── kernel/       # Core kernel code
+├── libc/             # Minimal C library
+│   ├── include/      # Standard headers (stdio, stdlib, string)
+│   ├── stdio/        # printf, putchar, puts
+│   ├── stdlib/       # abort
+│   └── string/       # memcpy, memset, strlen, etc.
+└── sysroot/          # Installed headers and libraries
 ```
+
+## Roadmap
+
+See [TODO.md](TODO.md) for current progress and future steps
+
+## Resources
+
+- [OSDev Wiki](https://wiki.osdev.org/)
+- [Bare Bones Tutorial](https://wiki.osdev.org/Bare_Bones)
+- [Meaty Skeleton](https://wiki.osdev.org/Meaty_Skeleton)
