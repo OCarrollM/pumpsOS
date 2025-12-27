@@ -94,7 +94,7 @@ _start:
     movl $(boot_page_directory - 0xC0000000), %ecx
     movl %ecx, %cr3
 
-    # Enable paging
+    # Enable paging (Write protection)
     movl %cr0, %ecx
     orl $0x80010000, %ecx
     movl %ecx, %cr0

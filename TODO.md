@@ -16,16 +16,17 @@
 
 - [ ] [Going Further on x86](https://wiki.osdev.org/Going_Further_on_x86)
     - [x] Preperation
-    - [ ] Design Considerations
+    - [x] Design Considerations
         - [x] Code Structure
             - Meaty Skeleton taught how to structure files properly, although this could change in the future, its current stage is a minimal example.
-        - [ ] Future Proofing
-        - [ ] Multithreading
-        - [ ] Hardware Abstraction
-        - [ ] Algorithms
+        - [x] Future Proofing
+        - [x] Multithreading
+        - [x] Hardware Abstraction
+        - [x] Algorithms
     - [ ] Paging
-        - [ ] Higher Half
+        - [x] Higher Half
         - [ ] Permissions
+            - Its basic for now, we have a write protection bit on paging but in the future for full vm, we need to set perms on every single section. 
     - [ ] More x86
         - [ ] Segments
         - [ ] Interrupts

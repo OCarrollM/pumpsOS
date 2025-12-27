@@ -8,10 +8,13 @@ I am following the [OSDev Wiki](https://wiki.osdev.org/) as a means of guidance 
 
 ## Current Status
 
+- 32-Bit OS
 - VGA text mode driver with colour support
 - Terminal scrolling and newline handling
 - Global constructors
 - A seperate kernel and libc (Guided by the Meaty Skeleton Architecture)
+- Kernel runs in the higher half of its memory. Currently allocating
+1 GiB of kernel data and 3Gib for processes (0xC00..). This may change
 
 ## Building
 As of commit `43dd352` (and presumebly later commits as I would rather commit working builds) it is possible to run this project yourself.

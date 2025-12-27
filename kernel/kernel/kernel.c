@@ -175,6 +175,7 @@
 #include <string.h>
 
 #include <kernel/tty.h>
+#include "../arch/i386/gdt.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -190,6 +191,8 @@ void kernel_main(void) {
     // test_stack_smash();
     // printf("SSP didn't work if we see this\n");
     // ^ It worked as of 22:06:50 24/12/25
+    gdt_init();
+    printf("GDT Initialized\n");
 
     printf("Kernel_main is at:");
     terminal_print_hex((uint32_t)&kernel_main);
