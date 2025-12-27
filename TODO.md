@@ -15,9 +15,10 @@
 ## In Progress
 
 - [ ] [Going Further on x86](https://wiki.osdev.org/Going_Further_on_x86)
-    - [ ] Preperation
+    - [x] Preperation
     - [ ] Design Considerations
-        - [ ] Code Structure
+        - [x] Code Structure
+            - Meaty Skeleton taught how to structure files properly, although this could change in the future, its current stage is a minimal example.
         - [ ] Future Proofing
         - [ ] Multithreading
         - [ ] Hardware Abstraction
