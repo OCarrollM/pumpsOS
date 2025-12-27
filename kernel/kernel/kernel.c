@@ -191,6 +191,9 @@ void kernel_main(void) {
     // printf("SSP didn't work if we see this\n");
     // ^ It worked as of 22:06:50 24/12/25
 
+    printf("Kernel_main is at:");
+    terminal_print_hex((uint32_t)&kernel_main);
+    printf("\n");
     terminal_writestring("         *     ,MMM8&&&.            *\n");
     terminal_writestring("              MMMM88&&&&&    .\n");
     terminal_writestring("             MMMM88&&&&&&&\n");

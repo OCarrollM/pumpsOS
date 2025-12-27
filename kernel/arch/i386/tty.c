@@ -85,3 +85,17 @@ void terminal_writestring(const char* data) {
 
 // This file is pretty much all of the functions created in the old kernel.c
 // ported over to another file.
+
+// Below will be new functions 
+
+void terminal_print_hex(uint32_t value) {
+    // Allows for %x
+    char hex_chars[] = "0123456789ABCDEF";
+    char buffer[11] = "0x00000000";
+
+    for (int i = 9; i >= 2; i--) {
+        buffer[i] = hex_chars[value & 0xF];
+        value >>= 4;
+    }
+    terminal_writestring(buffer);
+}
