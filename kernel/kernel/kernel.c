@@ -177,6 +177,8 @@
 #include <kernel/tty.h>
 #include "../arch/i386/gdt.h"
 #include "../arch/i386/idt.h"
+#include "../arch/i386/pic.h"
+#include "../arch/i386/timer.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -192,6 +194,8 @@ void kernel_main(void) {
     // test_stack_smash();
     // printf("SSP didn't work if we see this\n");
     // ^ It worked as of 22:06:50 24/12/25
+    printf("Kernel_main is at:\n");
+    terminal_print_hex((uint32_t)&kernel_main);
     gdt_init();
     printf("GDT Initialized\n");
 
@@ -204,28 +208,40 @@ void kernel_main(void) {
     // volatile int z = x / y;
     // (void)z;
 
-    printf("Kernel_main is at:");
-    terminal_print_hex((uint32_t)&kernel_main);
-    printf("\n");
-    terminal_writestring("         *     ,MMM8&&&.            *\n");
-    terminal_writestring("              MMMM88&&&&&    .\n");
-    terminal_writestring("             MMMM88&&&&&&&\n");
-    terminal_writestring(" *           MMM88&&&&&&&&\n");
-    terminal_writestring("             MMM88&&&&&&&&\n");
-    terminal_writestring("             'MMM88&&&&&&'\n");
-    terminal_writestring("               'MMM8&&&'      *\n");
-    terminal_writestring("        |\\___/|\n");
-    terminal_writestring("        )     (             .              '\n");
-    terminal_writestring("       =\\     /=\n");
-    terminal_writestring("         )===(       *\n");
-    terminal_writestring("        /     \\\n");
-    terminal_writestring("        |     |\n");
-    terminal_writestring("       /       \\ \n");
-    terminal_writestring("       \\       /\n");
-    terminal_writestring("_/\\_/\\_/\\__  _/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_\n");
-    terminal_writestring("|  |  |  |( (  |  |  |  |  |  |  |  |  |  |\n");
-    terminal_writestring("|  |  |  | ) ) |  |  |  |  |  |  |  |  |  |\n");
-    terminal_writestring("|  |  |  |(_(  |  |  |  |  |  |  |  |  |  |\n");
-    terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
-    terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
+    pic_init();
+    printf("PIC Initialized\n");
+
+    timer_init(100);
+    asm volatile("sti");
+    printf("Interrupts Enabled\n");
+    printf("Sleeping for 2 seconds\n");
+    timer_sleep(2000);
+
+    printf("Ticks: %d\n", (int)timer_get_ticks());
+
+    while(1) {
+        asm volatile("hlt");
+    }
+    // printf("\n");
+    // terminal_writestring("         *     ,MMM8&&&.            *\n");
+    // terminal_writestring("              MMMM88&&&&&    .\n");
+    // terminal_writestring("             MMMM88&&&&&&&\n");
+    // terminal_writestring(" *           MMM88&&&&&&&&\n");
+    // terminal_writestring("             MMM88&&&&&&&&\n");
+    // terminal_writestring("             'MMM88&&&&&&'\n");
+    // terminal_writestring("               'MMM8&&&'      *\n");
+    // terminal_writestring("        |\\___/|\n");
+    // terminal_writestring("        )     (             .              '\n");
+    // terminal_writestring("       =\\     /=\n");
+    // terminal_writestring("         )===(       *\n");
+    // terminal_writestring("        /     \\\n");
+    // terminal_writestring("        |     |\n");
+    // terminal_writestring("       /       \\ \n");
+    // terminal_writestring("       \\       /\n");
+    // terminal_writestring("_/\\_/\\_/\\__  _/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_\n");
+    // terminal_writestring("|  |  |  |( (  |  |  |  |  |  |  |  |  |  |\n");
+    // terminal_writestring("|  |  |  | ) ) |  |  |  |  |  |  |  |  |  |\n");
+    // terminal_writestring("|  |  |  |(_(  |  |  |  |  |  |  |  |  |  |\n");
+    // terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
+    // terminal_writestring("|  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n");
 }

@@ -30,7 +30,7 @@
     - [ ] More x86
         - [x] Segments
             - Need to do some deeper reading on GDTs
-        - [ ] Interrupts
+        - [x] Interrupts
         - [ ] Timers
         - [ ] Keyboard input
     - [ ] Memory Management
