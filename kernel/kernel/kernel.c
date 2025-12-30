@@ -179,6 +179,7 @@
 #include "../arch/i386/idt.h"
 #include "../arch/i386/pic.h"
 #include "../arch/i386/timer.h"
+#include "../arch/i386/keyboard.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -190,17 +191,58 @@ void __attribute__((noinline)) test_stack_smash(void) {
 
 void kernel_main(void) {
     terminal_initialize();
+    printf("=== Welcome to PumpsOS ===\n\n");
+
+    gdt_init();
+    printf("[OK] GDT Initialized\n");
+    idt_init();
+    printf("[OK] IDT Initialized\n");
+    pic_init();
+    printf("[OK] PIC Initialized\n");
+    timer_init(100);
+    printf("[OK] Timer Initialized (100 Hz)\n");
+
+    keyboard_init();
+
+    asm volatile("sti");
+    printf("[OK] Interrupts Initialized\n\n");
+
+    printf("=== Keyboard Demo ===\n\n");
+
+    printf("Type and press enter:\n");
+    printf("> ");
+    
+    char line[256];
+    keyboard_readline(line, sizeof(line));
+    printf("You typed: %s\n\n", line);
+
+    while(1) {
+        char c = keyboard_getchar();
+        if(c == '\n') {
+            printf("\n> ");
+        } else if(c == '\b') {
+            printf("\b \b");
+        } else {
+            printf("%c", c);
+        }
+    }
+
+
+    while(1) {
+        asm volatile("hlt");
+    }
+    //! BELOW IS OLD CODE PRIOR TO KEYBOARD INPUTS
     // printf("Testing SSP\n");
     // test_stack_smash();
     // printf("SSP didn't work if we see this\n");
     // ^ It worked as of 22:06:50 24/12/25
-    printf("Kernel_main is at:\n");
-    terminal_print_hex((uint32_t)&kernel_main);
-    gdt_init();
-    printf("GDT Initialized\n");
+    // printf("Kernel_main is at:\n");
+    // terminal_print_hex((uint32_t)&kernel_main);
+    // gdt_init();
+    // printf("GDT Initialized\n");
 
-    idt_init();
-    printf("IDT Initialized\n");
+    // idt_init();
+    // printf("IDT Initialized\n");
 
     // test for above
     // volatile int x = 10;
@@ -208,20 +250,20 @@ void kernel_main(void) {
     // volatile int z = x / y;
     // (void)z;
 
-    pic_init();
-    printf("PIC Initialized\n");
+    // pic_init();
+    // printf("PIC Initialized\n");
 
-    timer_init(100);
-    asm volatile("sti");
-    printf("Interrupts Enabled\n");
-    printf("Sleeping for 2 seconds\n");
-    timer_sleep(2000);
+    // timer_init(100);
+    // asm volatile("sti");
+    // printf("Interrupts Enabled\n");
+    // printf("Sleeping for 2 seconds\n");
+    // timer_sleep(2000);
 
-    printf("Ticks: %d\n", (int)timer_get_ticks());
+    // printf("Ticks: %d\n", (int)timer_get_ticks());
 
-    while(1) {
-        asm volatile("hlt");
-    }
+    // while(1) {
+    //     asm volatile("hlt");
+    // }
     // printf("\n");
     // terminal_writestring("         *     ,MMM8&&&.            *\n");
     // terminal_writestring("              MMMM88&&&&&    .\n");

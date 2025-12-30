@@ -31,7 +31,7 @@
         - [x] Segments
             - Need to do some deeper reading on GDTs
         - [x] Interrupts
-        - [ ] Timers
+        - [x] Timers
         - [ ] Keyboard input
     - [ ] Memory Management
         - [ ] Getting mem map
