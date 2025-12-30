@@ -54,3 +54,4 @@ See [TODO.md](TODO.md) for current progress and future steps
 - [OSDev Wiki](https://wiki.osdev.org/)
 - [Bare Bones Tutorial](https://wiki.osdev.org/Bare_Bones)
 - [Meaty Skeleton](https://wiki.osdev.org/Meaty_Skeleton)
+- [Creating an Operating System](https://wiki.osdev.org/Creating_an_Operating_System)
