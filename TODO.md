@@ -32,7 +32,7 @@
             - Need to do some deeper reading on GDTs
         - [x] Interrupts
         - [x] Timers
-        - [ ] Keyboard input
+        - [x] Keyboard input
     - [ ] Memory Management
         - [ ] Getting mem map
         - [ ] Physical mem manager
