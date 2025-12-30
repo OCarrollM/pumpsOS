@@ -28,7 +28,8 @@
         - [ ] Permissions
             - Its basic for now, we have a write protection bit on paging but in the future for full vm, we need to set perms on every single section. 
     - [ ] More x86
-        - [ ] Segments
+        - [x] Segments
+            - Need to do some deeper reading on GDTs
         - [ ] Interrupts
         - [ ] Timers
         - [ ] Keyboard input

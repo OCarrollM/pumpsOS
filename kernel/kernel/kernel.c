@@ -176,6 +176,7 @@
 
 #include <kernel/tty.h>
 #include "../arch/i386/gdt.h"
+#include "../arch/i386/idt.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -193,6 +194,15 @@ void kernel_main(void) {
     // ^ It worked as of 22:06:50 24/12/25
     gdt_init();
     printf("GDT Initialized\n");
+
+    idt_init();
+    printf("IDT Initialized\n");
+
+    // test for above
+    // volatile int x = 10;
+    // volatile int y = 0;
+    // volatile int z = x / y;
+    // (void)z;
 
     printf("Kernel_main is at:");
     terminal_print_hex((uint32_t)&kernel_main);
