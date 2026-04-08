@@ -14,9 +14,12 @@ for signiture in first 8 KiB. This can be forced
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
-.global boot_multiboot_info
+
+.section .bss, "aw", @nobits
+    .align 4
+    .global boot_multiboot_info
 boot_multiboot_info:                /* Creating a storage variable for memory maps */
-    .long 0
+    .skip 4
 
 
 /* 
@@ -64,19 +67,14 @@ _start:
     /* We first map address 0 and then map 1023 pages, 1024 is VGA */
 
 1:
-    /*  Kernel mapping */
-    cmpl $_kernel_start, %esi
-    jl 2f
     cmpl $(_kernel_end - 0xC0000000), %esi
     jge 3f
 
-    /* Map addresses as "present, writeable" */
     movl %esi, %edx
     orl $0x003, %edx
     movl %edx, (%edi)
 
 2:
-    /* Page size of 4096 bytes, boot page is 4, loop if not finished */
     addl $4096, %esi
     addl $4, %edi
     loop 1b
