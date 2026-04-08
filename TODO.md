@@ -35,7 +35,7 @@
         - [x] Keyboard input
     - [ ] Memory Management
         - [x] Getting mem map
-        - [ ] Physical mem manager
+        - [x] Physical mem manager
         - [ ] Virtual mem allocator
         - [ ] Heap allocator
     - [ ] Scheduler

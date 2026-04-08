@@ -9,6 +9,7 @@
 #include "../arch/i386/keyboard.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
+#include "pmm.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -39,6 +40,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     if(memory_map_init(mboot)) {
         memory_map_print();
+        pmm_init();
+        pmm_print_stats();
     } else {
         printf("Failed to initialize memory meap!\n");
     }
