@@ -46,7 +46,7 @@ bool memory_map_init(multiboot_info_t* mboot) {
 
     /* Parse the map */
     uint32_t mmap_virt = PHYS_TO_VIRT(mboot->mmap_addr);
-    uint32_t mmap_end = mboot->mmap_addr + mboot->mmap_length;
+    uint32_t mmap_end = mmap_virt + mboot->mmap_length;
     multiboot_mmap_entry_t* mmap = (multiboot_mmap_entry_t*) mmap_virt;
 
     while ((uint32_t)mmap < mmap_end && g_memory_map.region_count < MAX_MEMORY_REGIONS) {
