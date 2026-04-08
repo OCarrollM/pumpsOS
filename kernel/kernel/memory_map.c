@@ -3,6 +3,8 @@
 #include "memory_map.h"
 #include <stdio.h>
 
+#define PHYS_TO_VIRT(addr) ((addr) + 0xC0000000)
+
 memory_map_t g_memory_map;
 
 /* Convert memory regiontpe to human string */
@@ -43,8 +45,9 @@ bool memory_map_init(multiboot_info_t* mboot) {
     printf("Memory map at 0x%x, length=%d bytes\n", mboot->mmap_addr, mboot->mmap_length);
 
     /* Parse the map */
-    multiboot_mmap_entry_t* mmap = (multiboot_mmap_entry_t*) mboot->mmap_addr;
+    uint32_t mmap_virt = PHYS_TO_VIRT(mboot->mmap_addr);
     uint32_t mmap_end = mboot->mmap_addr + mboot->mmap_length;
+    multiboot_mmap_entry_t* mmap = (multiboot_mmap_entry_t*) mmap_virt;
 
     while ((uint32_t)mmap < mmap_end && g_memory_map.region_count < MAX_MEMORY_REGIONS) {
         memory_region_t* region = &g_memory_map.regions[g_memory_map.region_count];
@@ -64,6 +67,7 @@ bool memory_map_init(multiboot_info_t* mboot) {
             }
         }
 
+        // Advance to next entry
         mmap = (multiboot_mmap_entry_t*) ((uint32_t)mmap + mmap->size + sizeof(mmap->size));
     }
 

@@ -34,7 +34,7 @@
         - [x] Timers
         - [x] Keyboard input
     - [ ] Memory Management
-        - [ ] Getting mem map
+        - [x] Getting mem map
         - [ ] Physical mem manager
         - [ ] Virtual mem allocator
         - [ ] Heap allocator

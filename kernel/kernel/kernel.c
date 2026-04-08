@@ -180,6 +180,8 @@
 #include "../arch/i386/pic.h"
 #include "../arch/i386/timer.h"
 #include "../arch/i386/keyboard.h"
+#include "../kernel/multiboot.h"
+#include "../kernel/memory_map.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -189,7 +191,7 @@ void __attribute__((noinline)) test_stack_smash(void) {
 // Y'Know if it weren't for Matthew Bradburys Pen Test Module (442)
 // I'd have no idea what any of this meant.
 
-void kernel_main(void) {
+void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     printf("=== Welcome to PumpsOS ===\n\n");
 
@@ -206,6 +208,16 @@ void kernel_main(void) {
 
     asm volatile("sti");
     printf("[OK] Interrupts Initialized\n\n");
+
+    /* Convert physical address to virtual */
+    multiboot_info_t* mboot = (multiboot_info_t*)(multiboot_info_phys + 0xC0000000);
+    printf("Multiboot flags: 0x%x\n", mboot->flags);
+
+    if(memory_map_init(mboot)) {
+        memory_map_print();
+    } else {
+        printf("Failed to initialize memory meap!\n");
+    }
 
     printf("=== Keyboard Demo ===\n\n");
 
