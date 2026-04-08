@@ -35,8 +35,8 @@ boot_page_directory:
     .skip 4096
 boot_page_table1:
     .skip 4096
-# We can add many more page tables from here if the kernel grows beyond
-# 3 MiB
+/* We can add many more page tables from here if the kernel grows beyond
+ 3 MiB */
 
 /*
 We specify _start as the starting point and ask the Bootloader
@@ -52,65 +52,65 @@ _start:
     it (stdio.h for example)
     */
 
-    # Physical address of boot page table 1
+    /* Physical address of boot page table 1 */
     movl $(boot_page_table1 - 0xC0000000), %edi
     movl $0, %esi
     movl $1023, %ecx
-    # We first map address 0 and then map 1023 pages, 1024 is VGA
+    /* We first map address 0 and then map 1023 pages, 1024 is VGA */
 
 1:
-    # Kernel mapping
+    ;  Kernel mapping
     cmpl $_kernel_start, %esi
     jl 2f
     cmpl $(_kernel_end - 0xC0000000), %esi
     jge 3f
 
-    # Map addresses as "present, writeable"
+    ; Map addresses as "present, writeable"
     movl %esi, %edx
     orl $0x003, %edx
     movl %edx, (%edi)
 
 2:
-    # Page size of 4096 bytes, boot page is 4, loop if not finished
+    ; Page size of 4096 bytes, boot page is 4, loop if not finished
     addl $4096, %esi
     addl $4, %edi
     loop 1b
 
 3:
-    # Map the VGA
+    ; Map the VGA
     movl $(0x000B8000 | 0x003), boot_page_table1 - 0xC0000000 + 1023 * 4
 
-    # The page table is used at both page directory entry 0 (virtually from 0x0
-	# to 0x3FFFFF) (thus identity mapping the kernel) and page directory entry
-	# 768 (virtually from 0xC0000000 to 0xC03FFFFF) (thus mapping it in the
-	# higher half). The kernel is identity mapped because enabling paging does
-	# not change the next instruction, which continues to be physical. The CPU
-	# would instead page fault if there was no identity mapping.
+    ;  The page table is used at both page directory entry 0 (virtually from 0x0
+	;  to 0x3FFFFF) (thus identity mapping the kernel) and page directory entry
+	;  768 (virtually from 0xC0000000 to 0xC03FFFFF) (thus mapping it in the
+	;  higher half). The kernel is identity mapped because enabling paging does
+	;  not change the next instruction, which continues to be physical. The CPU
+	;  would instead page fault if there was no identity mapping.
 
     movl $(boot_page_table1 - 0xC0000000 + 0x003), boot_page_directory - 0xC0000000 + 0
     movl $(boot_page_table1 - 0xC0000000 + 0x003), boot_page_directory - 0xC0000000 + 768 * 4
 
-    # Set cr3 to boot_page_directory
+    ; Set cr3 to boot_page_directory
     movl $(boot_page_directory - 0xC0000000), %ecx
     movl %ecx, %cr3
 
-    # Enable paging (Write protection)
+    ; Enable paging (Write protection)
     movl %cr0, %ecx
     orl $0x80010000, %ecx
     movl %ecx, %cr0
 
-    # Jump to higher half
+    ; Jump to higher half
     lea 4f, %ecx
     jmp *%ecx
 
 .section .text
 
 4:
-    # From here paging should be set up
-    # We now unmap the identity mapping
+    ; From here paging should be set up
+    ; We now unmap the identity mapping
     movl $0, boot_page_directory + 0
 
-    # And reload crc3 to force a TLB flush
+    ; And reload crc3 to force a TLB flush
     movl %cr3, %ecx
     movl %ecx, %cr3
 
