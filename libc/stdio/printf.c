@@ -68,6 +68,46 @@ int printf(const char* restrict format, ...) {
                 return -1;
             }
             written += len;
+        } else if (*format == 'd') {
+            format++;
+            int num = va_arg(parameters, int);
+            if (num < 0) {
+                if (!print("-", 1)) return -1;
+                written++;
+                num = -num;
+            }
+            char buf[12];
+            int i = 0;
+            if (num == 0) {
+                buf[i++] = '0';
+            } else {
+                while (num > 0) {
+                    buf[i++] = '0' + (num % 10);
+                    num /= 10;
+                }
+            }
+            for (int j = i - 1; j >= 0; j--) {
+                if (!print(&buf[j], 1)) return -1;
+                written++;
+            }
+        } else if (*format == 'x') {
+            format++;
+            unsigned int num = va_arg(parameters, unsigned int);
+            char buf[9];
+            int i = 0;
+            if (num == 0) {
+                buf[i++] = '0';
+            } else {
+                while (num > 0) {
+                    int digit = num % 16;
+                    buf[i++] = digit < 10 ? '0' + digit : 'A' + digit - 10;
+                    num /= 16;
+                }
+            }
+            for (int j = i - 1; j >= 0; j--) {
+                if (!print(&buf[j], 1)) return -1;
+                written++;
+            }
         } else {
             format = format_begun_at;
             size_t len = strlen(format);
