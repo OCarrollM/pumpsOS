@@ -36,7 +36,7 @@
     - [ ] Memory Management
         - [x] Getting mem map
         - [x] Physical mem manager
-        - [ ] Virtual mem allocator
+        - [x] Virtual mem allocator
         - [ ] Heap allocator
     - [ ] Scheduler
         - [ ] Multiprocessing

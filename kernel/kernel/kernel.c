@@ -10,6 +10,7 @@
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "pmm.h"
+#include "vmm.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -42,6 +43,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
         memory_map_print();
         pmm_init();
         pmm_print_stats();
+        vmm_init();
+        vmm_print_mappings();
     } else {
         printf("Failed to initialize memory meap!\n");
     }
