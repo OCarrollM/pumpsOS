@@ -9,8 +9,9 @@
 #include "../arch/i386/keyboard.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
-#include "pmm.h"
-#include "vmm.h"
+#include "../kernel/pmm.h"
+#include "../kernel/vmm.h"
+#include "../kernel/heap.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -45,8 +46,35 @@ void kernel_main(uint32_t multiboot_info_phys) {
         pmm_print_stats();
         vmm_init();
         vmm_print_mappings();
+        heap_init();
+
+        printf("Testing kmalloc/kfree...\n");
+        char* test1 = kmalloc(100);
+        char* test2 = kmalloc(200);
+        char* test3 = kmalloc(50);
+
+        printf("    test1 = 0x%x\n", (uint32_t)test1);
+        printf("    test2 = 0x%x\n", (uint32_t)test2);
+        printf("    test3 = 0x%x\n", (uint32_t)test3);
+
+        memset(test1, 'A', 100);
+        memset(test2, 'B', 200);
+        memset(test3, 'C', 50);
+        printf("    Memory writes OK\n");
+
+        kfree(test2);
+        printf("    Freed test2\n");
+
+        char* test4 = kmalloc(150);
+        printf("    test4 = 0x%x (should reuse test2's space)\n", (uint32_t)test4);
+
+        kfree(test1);
+        kfree(test3);
+        kfree(test4);
+
+        heap_print_stats();
     } else {
-        printf("Failed to initialize memory meap!\n");
+        printf("Failed to initialize memory map!\n");
     }
 
     /* Interactive shell */
