@@ -33,11 +33,11 @@
         - [x] Interrupts
         - [x] Timers
         - [x] Keyboard input
-    - [ ] Memory Management
+    - [x] Memory Management
         - [x] Getting mem map
         - [x] Physical mem manager
         - [x] Virtual mem allocator
-        - [ ] Heap allocator
+        - [x] Heap allocator
     - [ ] Scheduler
         - [ ] Multiprocessing
         - [ ] Priority Levels
