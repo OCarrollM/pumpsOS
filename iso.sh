@@ -12,4 +12,5 @@ menuentry "pumpsOS" {
     multiboot /boot/pumpsos.kernel
 }
 EOF
-grub-mkrescue -o pumpsos.iso isodir
+GRUB_MKRESCUE=$(command -v grub-mkrescue || command -v i686-elf-grub-mkrescue)
+$GRUB_MKRESCUE -o pumpsos.iso isodir
