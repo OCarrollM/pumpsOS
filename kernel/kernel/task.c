@@ -2,16 +2,21 @@
 #include "heap.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "../arch/i386/isr.h"
 #include <stdio.h>
 #include <string.h>
 
 #define TASK_STACK_SIZE PAGE_SIZE
+#define PREEMPT_QUANTUM 10
 
 extern void task_switch(uint32_t* old_esp, uint32_t new_esp);
 
 static task_t* current_task = NULL;
 static task_t* task_list = NULL;
 static uint32_t next_tast_id = 1;
+
+static volatile bool preemption_enabled = false;
+static uint32_t preempt_counter = 0;
 
 /* Find next runnable task in the list */
 static task_t* pick_next_task(void) {
@@ -35,6 +40,41 @@ static task_t* pick_next_task(void) {
 // static void task_entry_wrapper(void) {
 
 // }
+
+void scheduler_enable_preemption(void) {
+    preemption_enabled = true;
+}
+
+void scheduler_disable_preemption(void) {
+    preemption_enabled = false;
+}
+
+void scheduler_tick(void) {
+    if (!preemption_enabled || current_task == NULL) {
+        return;
+    }
+
+    if (++preempt_counter < PREEMPT_QUANTUM) {
+        return;
+    }
+    preempt_counter = 0;
+
+    task_t* next = pick_next_task();
+    if (next == NULL || next == current_task) {
+        return;
+    }
+
+    /* Use the cooperative task_switch — it saves callee-saved regs.
+       The timer ISR has already saved the caller-saved regs via pusha. */
+    task_t* prev = current_task;
+    if (prev->state == TASK_RUNNING) {
+        prev->state = TASK_READY;
+    }
+    next->state = TASK_RUNNING;
+    current_task = next;
+
+    task_switch(&prev->esp, next->esp);
+}
 
 void scheduler_init(void) {
     task_t* main = (task_t*)kmalloc(sizeof(task_t));

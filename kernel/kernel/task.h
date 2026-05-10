@@ -27,6 +27,9 @@ task_t* task_create(const char* name, void (*entry)(void)); // Create a new kern
 void task_yield(void); // Give up the CPU
 void task_exit(void); // Terminate task
 task_t* task_current(void); // Get current task
+void scheduler_tick(void);
+void scheduler_enable_preemption(void);
+void scheduler_disable_preemption(void);
 void scheduler_print_tasks(void); // Debug
 
 #endif

@@ -2,6 +2,7 @@
 #include "ports.h"
 #include "pic.h"
 #include "isr.h"
+#include "../../kernel/task.h"
 #include <stdio.h>
 
 static volatile uint64_t ticks = 0;
@@ -12,6 +13,8 @@ static void timer_handler(struct registers* regs) {
     ticks++;
 
     pic_send_eoi(IRQ_TIMER);
+
+    scheduler_tick();
 }
 
 void timer_init(uint32_t frequency) {

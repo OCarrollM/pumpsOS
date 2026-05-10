@@ -25,14 +25,14 @@ void __attribute__((noinline)) test_stack_smash(void) {
 static void task_a(void) {
     for (int i = 0; i < 5; i++) {
         printf("[A] iteration %d\n", i);
-        task_yield();
+        for (volatile int j = 0; j < 10000000; j++) { }
     }
 }
 
 static void task_b(void) {
     for (int i = 0; i < 5; i++) {
         printf("[B] iteration %d\n", i);
-        task_yield();
+        for (volatile int j = 0; j < 10000000; j++) { }
     }
 }
 
@@ -93,12 +93,13 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
         task_create("task_a", task_a);
         task_create("task_b", task_b);
-        scheduler_print_tasks();
+        scheduler_enable_preemption();
+        //scheduler_print_tasks();
 
         printf("\nStarting cooperative scheduling test...\n");
         for (int i = 0; i < 10; i++) {
             printf("[main] iteration %d\n", i);
-            task_yield();
+            for (volatile int j = 0; j < 10000000; j++) { }
         }
         printf("\nMain loop done\n");
     } else {
