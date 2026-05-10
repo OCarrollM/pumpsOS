@@ -33,7 +33,9 @@ kernel/kernel.o \
 kernel/memory_map.o \
 kernel/pmm.o \
 kernel/vmm.o \
-kernel/heap.o
+kernel/heap.o \
+kernel/task.o \
+arch/i386/task_switch.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

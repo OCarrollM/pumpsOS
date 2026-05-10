@@ -39,9 +39,9 @@
         - [x] Virtual mem allocator
         - [x] Heap allocator
     - [ ] Scheduler
-        - [ ] Multiprocessing
+        - [x] Multiprocessing
         - [ ] Priority Levels
-        - [ ] Thread lists
+        - [x] Thread lists
 
 - [ ] [Creating an operating system](https://wiki.osdev.org/Creating_an_Operating_System)
     - [ ] Phase 0: Introduction

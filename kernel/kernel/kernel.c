@@ -12,6 +12,7 @@
 #include "../kernel/pmm.h"
 #include "../kernel/vmm.h"
 #include "../kernel/heap.h"
+#include "../kernel/task.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -20,6 +21,20 @@ void __attribute__((noinline)) test_stack_smash(void) {
 }
 // Y'Know if it weren't for Matthew Bradburys Pen Test Module (442)
 // I'd have no idea what any of this meant.
+
+static void task_a(void) {
+    for (int i = 0; i < 5; i++) {
+        printf("[A] iteration %d\n", i);
+        task_yield();
+    }
+}
+
+static void task_b(void) {
+    for (int i = 0; i < 5; i++) {
+        printf("[B] iteration %d\n", i);
+        task_yield();
+    }
+}
 
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
@@ -47,6 +62,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
         vmm_init();
         vmm_print_mappings();
         heap_init();
+        scheduler_init();
+        
 
         printf("Testing kmalloc/kfree...\n");
         char* test1 = kmalloc(100);
@@ -73,6 +90,17 @@ void kernel_main(uint32_t multiboot_info_phys) {
         kfree(test4);
 
         heap_print_stats();
+
+        task_create("task_a", task_a);
+        task_create("task_b", task_b);
+        scheduler_print_tasks();
+
+        printf("\nStarting cooperative scheduling test...\n");
+        for (int i = 0; i < 10; i++) {
+            printf("[main] iteration %d\n", i);
+            task_yield();
+        }
+        printf("\nMain loop done\n");
     } else {
         printf("Failed to initialize memory map!\n");
     }
