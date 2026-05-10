@@ -43,19 +43,51 @@
         - [ ] Priority Levels
         - [ ] Thread lists
 
-## Next Steps
-
-- [ ] Basic shell
-- [ ] Bare Bones II
-    - There is no page for this, more of a "You are now free to experiment".
-    This is where future ideas comes in and the real project will take shape. Hopefully this will be begun in 2026!
-
-## Future Ideas
-
-- [ ] File system (FAT12/16?)
-- [ ] User mode
-- [ ] System calls
-- [ ] Multitasking / scheduler
+- [ ] [Creating an operating system](https://wiki.osdev.org/Creating_an_Operating_System)
+    - [ ] Phase 0: Introduction
+        - [x] Intro
+        - [x] Building the latest GCC
+    - [ ] Phase 1: Beginning <- I am here
+        - [x] [Setting up a Cross-Toolchain](https://wiki.osdev.org/GCC_Cross_Compiler)
+        - [x] [Creating a Hello World Kernel](https://wiki.osdev.org/Bare_Bones)
+        - [x] [Setting up a project](https://wiki.osdev.org/Meaty_Skeleton)
+        - [x] [Calling Global Constructors](https://wiki.osdev.org/Calling_Global_Constructors)
+        - [x] [Terminal Support](https://wiki.osdev.org/Formatted_Printing)
+        - [x] [Stack Smash Protector](https://wiki.osdev.org/Stack_Smashing_Protector)
+        - [x] [MultiBoot](https://wiki.osdev.org/Multiboot)
+        - [x] [Global Descriptor Table](https://wiki.osdev.org/Global_Descriptor_Table)
+        - [x] [Memory Management](https://wiki.osdev.org/Memory_Management)
+        - [x] [Interrupts](https://wiki.osdev.org/Interrupts)
+        - [x] [Multithreaded Kernel](https://wiki.osdev.org/Multithreaded_Kernel)
+        - [x] [Keyboard](https://wiki.osdev.org/Keyboard)
+        - [ ] [Internal Kernel Debugger](https://wiki.osdev.org/Internal_Kernel_Debugger)
+        - [ ] [Filesystem support](https://wiki.osdev.org/Filesystem)
+    - [ ] Phase 2: User-Space
+        - [ ] User-Space
+        - [ ] Program Loading
+        - [ ] System Calls
+        - [ ] OS Specific Toolchain
+        - [ ] Creating a C Library
+        - [ ] Fork and Execute
+        - [ ] Shell
+    - [ ] Phase 3: Expanding
+        - [ ] Time
+        - [ ] Threads
+        - [ ] Thread Local Storage
+        - [ ] Symmetric MultiProcessing
+        - [ ] Secondary Storage
+        - [ ] Real Filesystems
+        - [ ] Graphics
+        - [ ] User Interface
+        - [ ] Networking
+        - [ ] Sound
+        - [ ] Universal Serial Bus
+    - [ ] Phase 4: Bootstrapping
+        - [ ] Porting Software
+        - [ ] Porting GCC
+        - [ ] Compiling your OS under your OS
+        - [ ] Fully Self hosting
+    - [ ] Phase 5: Complete
 
 ## The End Result
 
