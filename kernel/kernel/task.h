@@ -25,6 +25,7 @@ typedef struct task {
     uint32_t priority;
     uint32_t esp; // Saved pointer (for context switching)
     uint32_t stack_base; // Base of stack
+    uint32_t page_directory; // Physical addr of this tasks page directory
     uint32_t wake_tick; // If sleep, count to wake
     struct task* next; // Linked list of tasks
 } task_t;

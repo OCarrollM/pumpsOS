@@ -81,6 +81,13 @@ void scheduler_tick(void) {
     next->state = TASK_RUNNING;
     current_task = next;
 
+    if (next->page_directory != prev->page_directory) {
+        printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
+            prev->page_directory, next->page_directory);
+        vmm_switch_address_space(next->page_directory);
+        printf("[SCHED] cr3 swap done\n");
+    }
+
     task_switch(&prev->esp, next->esp);
 }
 
@@ -96,6 +103,7 @@ void scheduler_init(void) {
     main->name[31] = '\0';
     main->state = TASK_RUNNING;
     main->priority = PRIORITY_NORMAL;
+    main->page_directory = vmm_get_current_address_space();
     main->esp = 0;
     main->stack_base = 0;
     main->wake_tick = 0;
@@ -122,12 +130,21 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
         return NULL;
     }
 
+    // Create addr space
+    uint32_t pd = vmm_create_address_space();
+    if (pd == 0) {
+        kfree(stack);
+        kfree(task);
+        return NULL;
+    }
+
     task->id = next_tast_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;
     task->priority = priority;
     task->stack_base = (uint32_t)stack;
+    task->page_directory = pd;
     task->wake_tick = 0;
 
     uint32_t* sp = (uint32_t*)((uint8_t*)stack + TASK_STACK_SIZE);
@@ -145,7 +162,7 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     task->next = current_task->next;
     current_task->next = task;
 
-    printf("Created task '%s' (id=%id, stack=0x%x)\n", task->name, task->id, task->priority);
+    printf("Created task '%s' (id=%id, stack=0x%x)\n", task->name, task->id, task->priority, task->page_directory);
 
     return task;
 }
@@ -166,6 +183,14 @@ void task_yield(void) {
     }
     next->state = TASK_RUNNING;
     current_task = next;
+
+    // Switch addr space if needed
+    if (next->page_directory != prev->page_directory) {
+        printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
+            prev->page_directory, next->page_directory);
+        vmm_switch_address_space(next->page_directory);
+        printf("[SCHED] cr3 swap done\n");
+    }
 
     task_switch(&prev->esp, next->esp);
 }
@@ -203,7 +228,7 @@ void scheduler_print_tasks(void) {
             case TASK_SLEEPING:     state_str = "SLEEPING";     break;
             case TASK_TERMINATED:   state_str = "TERMINATED";   break;
         }
-        printf("    [%d] %s - %s (esp=0x%x)\n", t->id, t->name, state_str, t->priority, t->esp);
+        printf("    [%d] %s - %s (priority=%d, esp=0x%x, pd=0x%x)\n", t->id, t->name, state_str, t->priority, t->esp, t->page_directory);
         t = t->next;
     } while (t != task_list);
     printf("\n");
