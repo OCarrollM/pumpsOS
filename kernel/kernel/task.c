@@ -24,22 +24,30 @@ static task_t* pick_next_task(void) {
         return NULL;
     }
 
+    task_t* best = NULL;
+    uint32_t best_priority = 0;
+
     task_t* start = current_task ? current_task->next : task_list;
     task_t* candidate = start;
 
     do {
         if (candidate->state == TASK_READY) {
-            return candidate;
+            if (best == NULL || candidate->priority > best_priority) {
+                best = candidate;
+                best_priority = candidate->priority;
+            }
         }
         candidate = candidate->next;
     } while (candidate != start);
 
-    return NULL;
+    return best;
 }
 
-// static void task_entry_wrapper(void) {
-
-// }
+void task_set_priority(task_t* task, uint32_t priority) {
+    if (task) {
+        task->priority = priority;
+    }
+}
 
 void scheduler_enable_preemption(void) {
     preemption_enabled = true;
@@ -87,6 +95,7 @@ void scheduler_init(void) {
     strncpy(main->name, "kernel_main", 31);
     main->name[31] = '\0';
     main->state = TASK_RUNNING;
+    main->priority = PRIORITY_NORMAL;
     main->esp = 0;
     main->stack_base = 0;
     main->wake_tick = 0;
@@ -98,7 +107,7 @@ void scheduler_init(void) {
     printf("Initialized scheduler, current task: %s (id=%d)\n", main->name, main->id);
 }
 
-task_t* task_create(const char* name, void (*entry)(void)) {
+task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     // Allocate the task struct
     task_t* task = (task_t*)kmalloc(sizeof(task_t));
     if (!task) {
@@ -117,6 +126,7 @@ task_t* task_create(const char* name, void (*entry)(void)) {
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;
+    task->priority = priority;
     task->stack_base = (uint32_t)stack;
     task->wake_tick = 0;
 
@@ -135,7 +145,7 @@ task_t* task_create(const char* name, void (*entry)(void)) {
     task->next = current_task->next;
     current_task->next = task;
 
-    printf("Created task '%s' (id=%id, stack=0x%x)\n", task->name, task->id, task->stack_base);
+    printf("Created task '%s' (id=%id, stack=0x%x)\n", task->name, task->id, task->priority);
 
     return task;
 }
@@ -193,7 +203,7 @@ void scheduler_print_tasks(void) {
             case TASK_SLEEPING:     state_str = "SLEEPING";     break;
             case TASK_TERMINATED:   state_str = "TERMINATED";   break;
         }
-        printf("    [%d] %s - %s (esp=0x%x)\n", t->id, t->name, state_str, t->esp);
+        printf("    [%d] %s - %s (esp=0x%x)\n", t->id, t->name, state_str, t->priority, t->esp);
         t = t->next;
     } while (t != task_list);
     printf("\n");

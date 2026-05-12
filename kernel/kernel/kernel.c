@@ -91,8 +91,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
         heap_print_stats();
 
-        task_create("task_a", task_a);
-        task_create("task_b", task_b);
+        task_create("task_a", task_a, PRIORITY_NORMAL);
+        task_create("task_b", task_b, PRIORITY_HIGH);
         scheduler_enable_preemption();
         //scheduler_print_tasks();
 

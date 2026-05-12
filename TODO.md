@@ -40,7 +40,7 @@
         - [x] Heap allocator
     - [ ] Scheduler
         - [x] Multiprocessing
-        - [ ] Priority Levels
+        - [x] Priority Levels
         - [x] Thread lists
 
 - [ ] [Creating an operating system](https://wiki.osdev.org/Creating_an_Operating_System)
