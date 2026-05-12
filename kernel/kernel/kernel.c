@@ -104,7 +104,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
         printf("Task A pd: 0x%x (struct at 0x%x)\n", a->page_directory, (uint32_t)a);
         printf("Task B pd: 0x%x (struct at 0x%x)\n", b->page_directory, (uint32_t)b);
         printf("Main pd: 0x%x\n", task_current()->page_directory);
-        printf("testing");
+        
         // adding a pause so i can READ MY TERMINAL
         for (volatile int i = 0; i < 500000000; i++) { }
 
