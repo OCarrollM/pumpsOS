@@ -90,17 +90,26 @@ void kernel_main(uint32_t multiboot_info_phys) {
         kfree(test4);
 
         heap_print_stats();
-
-        task_create("task_a", task_a, PRIORITY_NORMAL);
-        task_create("task_b", task_b, PRIORITY_HIGH);
-        scheduler_enable_preemption();
-        //scheduler_print_tasks();
+        
 
         printf("\nStarting cooperative scheduling test...\n");
         for (int i = 0; i < 10; i++) {
             printf("[main] iteration %d\n", i);
             for (volatile int j = 0; j < 10000000; j++) { }
         }
+
+        task_t* a = task_create("task_a", task_a, PRIORITY_NORMAL);
+        task_t* b = task_create("task_b", task_b, PRIORITY_HIGH);
+        
+        printf("Task A pd: 0x%x (struct at 0x%x)\n", a->page_directory, (uint32_t)a);
+        printf("Task B pd: 0x%x (struct at 0x%x)\n", b->page_directory, (uint32_t)b);
+        printf("Main pd: 0x%x\n", task_current()->page_directory);
+        
+        // adding a pause so i can READ MY TERMINAL
+        for (volatile int i = 0; i < 500000000; i++) { }
+
+        scheduler_enable_preemption();
+        scheduler_print_tasks();
         printf("\nMain loop done\n");
     } else {
         printf("Failed to initialize memory map!\n");

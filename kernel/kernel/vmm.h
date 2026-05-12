@@ -21,6 +21,10 @@ bool vmm_map_page(uint32_t virtual_addr, uint32_t physical_addr, uint32_t flags)
 uint32_t vmm_unmap_page(uint32_t virtual_addr);
 bool vmm_is_mapped(uint32_t virtual_addr);
 uint32_t vmm_get_physical(uint32_t virtual_addr);
+uint32_t vmm_create_address_space(void);
+void vmm_destroy_address_space(uint32_t pd_phys);
+void vmm_switch_address_space(uint32_t pd_phys);
+uint32_t vmm_get_current_address_space(void);
 
 void vmm_print_mappings(void);
 

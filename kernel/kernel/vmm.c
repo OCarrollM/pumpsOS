@@ -155,6 +155,52 @@ uint32_t vmm_get_physical(uint32_t virtual_addr) {
     return (pt[pti] & 0xFFFFF000) | (virtual_addr & 0xFFF);
 }
 
+uint32_t vmm_create_address_space(void) {
+    uint32_t new_pd_phys = pmm_alloc_page();
+    if (new_pd_phys == 0) {
+        printf("ERROR: Could not allocate page directory\n");
+        return 0;
+    }
+
+    uint32_t scratch_vaddr = 0xE0000000;
+
+    if (!vmm_map_page(scratch_vaddr, new_pd_phys, PTE_PRESENT | PTE_WRITABLE)) {
+        pmm_free_page(new_pd_phys);
+        return 0;
+    }
+
+    uint32_t* new_pd = (uint32_t*)scratch_vaddr;
+    uint32_t* current_pd = vmm_get_page_directory();
+
+    for (int i = 0; i < 768; i++) {
+        new_pd[i] = 0; // 0 the lower half
+    }
+
+    for (int i = 768; i < 1023; i++) {
+        new_pd[i] = current_pd[i];
+    }
+
+    new_pd[1023] = new_pd_phys | PTE_PRESENT | PTE_WRITABLE;
+
+    vmm_unmap_page(scratch_vaddr);
+
+    return new_pd_phys;
+}
+
+void vmm_switch_address_space(uint32_t pd_phys) {
+    asm volatile("movl %0, %%cr3" : : "r"(pd_phys) : "memory");
+}
+
+void vmm_destroy_address_space(uint32_t pd_phys) {
+    pmm_free_page(pd_phys);
+}
+
+uint32_t vmm_get_current_address_space(void) {
+    uint32_t pd_phys;
+    asm volatile("movl %%cr3, %0" : "=r"(pd_phys));
+    return pd_phys;
+}
+
 void vmm_print_mappings(void) {
     uint32_t* pd = vmm_get_page_directory();
     int mapped_count = 0;
