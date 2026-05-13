@@ -15,4 +15,11 @@ void panic_stack_trace(struct registers* regs);
 
 #define PANIC(msg) panic(msg, __FILE__, __LINE__);
 
+#define KASSERT(cond) \
+    do { \
+        if (!(cond)) { \
+            panic("Assertion failed: " #cond, __FILE__, __LINE__); \
+        } \
+    } while (0)
+
 #endif

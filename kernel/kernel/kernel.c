@@ -129,7 +129,9 @@ void kernel_main(uint32_t multiboot_info_phys) {
         // volatile int* p = (int*)0xDEADBEEF;
         // *p = 42;
 
-        outer_function();
+        //outer_function();
+        KASSERT(1 == 1);
+        KASSERT(1 == 2);
     } else {
         printf("Failed to initialize memory map!\n");
     }
