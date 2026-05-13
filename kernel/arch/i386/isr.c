@@ -1,4 +1,5 @@
 #include "isr.h"
+#include "../../kernel/panic.h"
 #include <stdio.h>
 #include <kernel/tty.h>
 
@@ -50,17 +51,6 @@ void isr_handler(struct registers* regs) {
     }
 
     if (regs->int_no < 32) {
-        terminal_setcolor(0x04);
-        printf("\n =-=-= KERNEL PANIC MODE =-=-=\n");
-        printf("Exception: %s\n", exception_messages[regs->int_no]);
-        printf("Error Code: 0x%x\n", regs->err_code);
-        printf("EIP: 0x%x\n", regs->eip);
-        printf("CS: 0x%x\n", regs->cs);
-        printf("EFLAGS: 0x%x\n", regs->eflags);
-
-        // Halt CPU
-        asm volatile("cli; hlt");
+        panic_from_exception(regs);
     }
 }
-
-// TODO

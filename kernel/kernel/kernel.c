@@ -13,6 +13,7 @@
 #include "../kernel/vmm.h"
 #include "../kernel/heap.h"
 #include "../kernel/task.h"
+#include "../kernel/panic.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -106,11 +107,15 @@ void kernel_main(uint32_t multiboot_info_phys) {
         printf("Main pd: 0x%x\n", task_current()->page_directory);
         
         // adding a pause so i can READ MY TERMINAL
-        for (volatile int i = 0; i < 500000000; i++) { }
+        // for (volatile int i = 0; i < 500000000; i++) { }
 
         scheduler_enable_preemption();
         scheduler_print_tasks();
         printf("\nMain loop done\n");
+
+        // PANIC("This is a test panic");
+        volatile int* p = (int*)0xDEADBEEF;
+        *p = 42;
     } else {
         printf("Failed to initialize memory map!\n");
     }

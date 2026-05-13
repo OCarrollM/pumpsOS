@@ -36,6 +36,7 @@ kernel/vmm.o \
 kernel/heap.o \
 kernel/task.o \
 arch/i386/task_switch.o \
+kernel/panic.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
