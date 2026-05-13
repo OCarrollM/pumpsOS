@@ -29,7 +29,7 @@ static uint32_t parse_hex(const char* s) {
 static const char* skip_word(const char* s) {
     while (*s && *s != ' ' && *s != '\t') s++;
     while (*s == ' ' || *s == '\t') s++;
-    return;
+    return s;
 }
 
 static bool cmd_matches(const char* cmd, const char* prefix) {
@@ -63,7 +63,7 @@ static void cmd_peek(const char* args) {
     }
 
     addr &= ~3u;
-    uint32_t value *(volatile uint32_t*)addr;
+    uint32_t value = *(volatile uint32_t*)addr;
     printf("0x%x\n", addr, value);
 }
 
@@ -88,7 +88,7 @@ static void cmd_dump(const char* args) {
     }
 }
 
-static void cmd_clean(void) {
+static void cmd_mem(void) {
     heap_print_stats();
     printf("PMM: %d / %d pages free\n", pmm_get_free_page_count(), pmm_get_total_page_count());
 }
@@ -98,10 +98,10 @@ static void read_command(char* buf, size_t max) {
 }
 
 void debugger_enter(struct registers* regs) {
-    asm volatile("cli");
-
     printf("\n--- Kernel debugger ---\n");
     printf("Type 'help' for commands\n");
+
+    asm volatile("sti");
 
     char buf[128];
 

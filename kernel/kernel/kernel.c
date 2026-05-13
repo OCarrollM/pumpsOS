@@ -14,6 +14,7 @@
 #include "../kernel/heap.h"
 #include "../kernel/task.h"
 #include "../kernel/panic.h"
+#include "../kernel/debugger.h"
 
 // Function to purposely overflow the buffer
 void __attribute__((noinline)) test_stack_smash(void) {
@@ -137,6 +138,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     }
 
     /* Interactive shell */
+    debugger_init();
     printf("> ");
     while(1) {
         char c = keyboard_getchar();

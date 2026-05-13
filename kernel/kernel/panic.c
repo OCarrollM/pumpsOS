@@ -1,4 +1,5 @@
 #include "panic.h"
+#include "debugger.h"
 #include <stdio.h>
 #include <kernel/tty.h>
 
@@ -129,6 +130,9 @@ void panic_from_exception(struct registers* regs) {
     panic_dump_registers(regs);
     panic_stack_trace(regs);
 
+    printf("\nDropping into kernel debugger.\n");
+    debugger_enter(regs);
+
     printf("\nSystem halted.\n");
 
     while (1) {
@@ -151,6 +155,9 @@ void panic(const char* msg, const char* file, int line) {
 
     /* Build a minimal register snapshot for stack tracing */
     panic_stack_trace(NULL);
+
+    printf("\nDropping into kernel debugger.\n");
+    debugger_enter(NULL);
 
     printf("\nSystem halted.\n");
 
