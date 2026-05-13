@@ -56,9 +56,40 @@ void panic_dump_registers(struct registers* regs) {
 }
 
 void panic_stack_trace(struct registers* regs) {
-    (void)regs;
     printf("\n--- Stack trace ---\n");
-    printf("    (not yet implemented)\n");
+    
+    uint32_t* ebp;
+    if (regs) {
+        ebp = (uint32_t*)regs->ebp;
+    } else {
+        asm volatile("movl %%ebp, %0" : "=r"(ebp));
+    }
+
+    int frame = 0;
+    int max_frames = 16;
+
+    while (ebp && frame < max_frames) {
+        if ((uint32_t)ebp < 0xC0000000 || (uint32_t)ebp >= 0xFFC00000) {
+            printf("    #%d <invalid frame at 0x%x>\n", frame, (uint32_t)ebp);
+            break;
+        }
+
+        uint32_t return_addr = ebp[1];
+        uint32_t prev_ebp = ebp[0];
+
+        printf("    #%d 0x%x\n", frame, return_addr);
+
+        if (prev_ebp == 0) {
+            break;
+        }
+
+        ebp = (uint32_t*)prev_ebp;
+        frame++;
+    }
+
+    if (frame == max_frames) {
+        printf("    ... (truncated at %d frames)\n", max_frames);
+    }
 }
 
 static void decode_page_fault(uint32_t err_code) {

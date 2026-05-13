@@ -37,6 +37,18 @@ static void task_b(void) {
     }
 }
 
+static void inner_function(void) {
+    PANIC("Stack trace test");
+}
+
+static void middle_function(void) {
+    inner_function();
+}
+
+static void outer_function(void) {
+    middle_function();
+}
+
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     printf("=== Welcome to PumpsOS ===\n\n");
@@ -114,8 +126,10 @@ void kernel_main(uint32_t multiboot_info_phys) {
         printf("\nMain loop done\n");
 
         // PANIC("This is a test panic");
-        volatile int* p = (int*)0xDEADBEEF;
-        *p = 42;
+        // volatile int* p = (int*)0xDEADBEEF;
+        // *p = 42;
+
+        outer_function();
     } else {
         printf("Failed to initialize memory map!\n");
     }
