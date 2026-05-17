@@ -38,6 +38,7 @@ kernel/task.o \
 arch/i386/task_switch.o \
 kernel/panic.o \
 kernel/debugger.o \
+kernel/vfs.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
