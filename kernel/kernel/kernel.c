@@ -15,6 +15,8 @@
 #include "../kernel/task.h"
 #include "../kernel/panic.h"
 #include "../kernel/debugger.h"
+#include "../kernel/vfs.h"
+#include "../kernel/initrd.h"
 
 
 static void task_a(void) {
@@ -59,9 +61,36 @@ void kernel_main(uint32_t multiboot_info_phys) {
     heap_init();
     printf("Memory Management Initialized\n");
 
+    vfs_root = initrd_init_from_multiboot(mboot);
+    if (vfs_root) {
+        printf("Initrd mounted\n");
+
+        // test
+        printf("\n--- Contents of / ---\n");
+        struct dirent* de;
+        int i = 0;
+        while ((de = vfs_readdir(vfs_root, i)) != NULL) {
+            printf("    %s\n", de->name);
+            i++;
+        }
+
+        // Test: read
+        vfs_node_t* hello = vfs_lookup("/hello.txt");
+        if (hello) {
+            char buf[256];
+            uint32_t n = vfs_read(hello, 0, sizeof(buf) - 1, (uint8_t*)buf);
+            buf[n] = '\0';
+            printf("\nContents of hello.txt (%d bytes):\n%s\n", n, buf);
+        } else {
+            printf("hello.txt not found");
+        }
+    } else {
+        printf("No initrd loaded\n");
+    }
+
     scheduler_init();
-    task_create("task_a", task_a, PRIORITY_NORMAL);
-    task_create("task_b", task_b, PRIORITY_HIGH);
+    //task_create("task_a", task_a, PRIORITY_NORMAL);
+    //task_create("task_b", task_b, PRIORITY_HIGH);
     scheduler_enable_preemption();
     printf("Scheduler Running\n\n");
 

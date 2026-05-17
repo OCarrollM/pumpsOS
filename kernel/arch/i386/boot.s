@@ -68,7 +68,7 @@ _start:
     /* We first map address 0 and then map 1023 pages, 1024 is VGA */
 
 1:
-    cmpl $(_kernel_end - 0xC0000000), %esi
+    cmpl $0x400000, %esi
     jge 3f
 
     movl %esi, %edx
