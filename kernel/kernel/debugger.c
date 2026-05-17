@@ -4,6 +4,7 @@
 #include "../kernel/heap.h"
 #include "../kernel/pmm.h"
 #include "../kernel/vmm.h"
+#include "../arch/i386/isr.h"
 #include "../arch/i386/keyboard.h"
 #include <stdio.h>
 #include <string.h>
@@ -144,6 +145,14 @@ void debugger_enter(struct registers* regs) {
     }
 }
 
+static void breakpoint_handler(struct registers* regs) {
+    printf("\n--- Breakpoint ---\n");
+    printf("Hit at EIP0x%x\n", regs->eip);
+
+    debugger_enter(regs);
+}
+
 void debugger_init(void) {
+    isr_register_handler(3, breakpoint_handler);
     printf("Kernel debugger initialized\n");
 }

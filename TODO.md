@@ -60,7 +60,7 @@
         - [x] [Interrupts](https://wiki.osdev.org/Interrupts)
         - [x] [Multithreaded Kernel](https://wiki.osdev.org/Multithreaded_Kernel)
         - [x] [Keyboard](https://wiki.osdev.org/Keyboard)
-        - [ ] [Internal Kernel Debugger](https://wiki.osdev.org/Internal_Kernel_Debugger)
+        - [x] [Internal Kernel Debugger](https://wiki.osdev.org/Internal_Kernel_Debugger)
         - [ ] [Filesystem support](https://wiki.osdev.org/Filesystem)
     - [ ] Phase 2: User-Space
         - [ ] User-Space
