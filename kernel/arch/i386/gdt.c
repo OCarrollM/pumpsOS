@@ -34,23 +34,23 @@ static void gdt_set_gate(int num, uint32_t base, uint32_t limit, uint8_t access,
  * covering the whole 4GB space we assigned 
  */
 void gdt_init(void) {
-    gp.limit = (sizeof(struct gdt_entry) * 6) - 1;
+    gp.limit = sizeof(gdt) - 1;
     gp.base = (uint32_t)&gdt;
 
     // Null desc (CPU needs this even if not used)
     gdt_set_gate(0,0,0,0,0);
 
     // Kernel code
-    gdt_set_gate(1,0,0xFFFFFFF,0x9A,0xCF);
+    gdt_set_gate(1,0,0xFFFFF,0x9A,0xCF);
 
     // Kernel data
-    gdt_set_gate(2,0,0xFFFFFFF,0x92,0xCF);
+    gdt_set_gate(2,0,0xFFFFF,0x92,0xCF);
 
     // User Code
-    gdt_set_gate(3,0,0xFFFFFFF,0xFA,0xCF);
+    gdt_set_gate(3,0,0xFFFFF,0xFA,0xCF);
 
     // User Data
-    gdt_set_gate(4,0,0xFFFFFFF,0xF2,0xCF);
+    gdt_set_gate(4,0,0xFFFFF,0xF2,0xCF);
 
     // TSS, Null for now
     gdt_set_gate(5,0,0,0,0);

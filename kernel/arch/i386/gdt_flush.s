@@ -25,4 +25,11 @@ gdt_flush:
 
 .flush:
     ret
+
+.global tss_flush
+.type tss_flush, @function
+tss_flush:
+    movw $0x2B, %ax
+    ltr %ax
+    ret
     
