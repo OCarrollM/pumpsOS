@@ -154,5 +154,5 @@ static void breakpoint_handler(struct registers* regs) {
 
 void debugger_init(void) {
     isr_register_handler(3, breakpoint_handler);
-    printf("Kernel debugger initialized\n");
+    //printf("Kernel debugger initialized\n");
 }

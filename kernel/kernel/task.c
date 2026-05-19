@@ -112,7 +112,7 @@ void scheduler_init(void) {
     current_task = main;
     task_list = main;
 
-    printf("Initialized scheduler, current task: %s (id=%d)\n", main->name, main->id);
+    //printf("Initialized scheduler, current task: %s (id=%d)\n", main->name, main->id);
 }
 
 task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {

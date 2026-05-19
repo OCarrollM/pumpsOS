@@ -38,16 +38,16 @@ void kernel_main(uint32_t multiboot_info_phys) {
     printf("=== Welcome to PumpsOS ===\n\n");
 
     gdt_init();
-    printf("[OK] GDT Initialized\n");
+    //printf("[OK] GDT Initialized\n");
     idt_init();
-    printf("[OK] IDT Initialized\n");
+    //printf("[OK] IDT Initialized\n");
     pic_init();
-    printf("[OK] PIC Initialized\n");
+    //printf("[OK] PIC Initialized\n");
     timer_init(100);
-    printf("[OK] Timer Initialized (100 Hz)\n");
+    //printf("[OK] Timer Initialized (100 Hz)\n");
     keyboard_init();
     asm volatile("sti");
-    printf("[OK] Interrupts Initialized\n\n");
+    //printf("[OK] Interrupts Initialized\n\n");
 
     /* Convert physical address to virtual */
     multiboot_info_t* mboot = (multiboot_info_t*)(multiboot_info_phys + 0xC0000000);
@@ -92,13 +92,13 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //task_create("task_a", task_a, PRIORITY_NORMAL);
     //task_create("task_b", task_b, PRIORITY_HIGH);
     scheduler_enable_preemption();
-    printf("Scheduler Running\n\n");
+    //printf("Scheduler Running\n\n");
 
     debugger_init();
 
-    printf("Before breakpoint\n");
+    //printf("Before breakpoint\n");
     BREAKPOINT();
-    printf("After breakpoint\n");
+    //printf("After breakpoint\n");
     printf("> ");
     while(1) {
         char c = keyboard_getchar();

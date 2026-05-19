@@ -90,11 +90,14 @@ vfs_node_t* initrd_init(uint32_t location, uint32_t size) {
     uint8_t* data = (uint8_t*)location;
     uint32_t offset = 0;
 
-    file_count = 0;
+    file_count = 0; // first pass
     while (offset < size) {
         ustar_header_t* hdr = (ustar_header_t*)(data + offset);
 
         if (hdr->name[0] == '\0') break;
+
+        printf("[INITRD] PASS1 offset=%d name='%s' type='%c'\n",
+           offset, hdr->name, hdr->type ? hdr->type : '?');
 
         if (memcmp(hdr->magic, "ustar", 5) != 0) {
             printf("WARNING: bad magic at offset %d\n", offset);
@@ -127,9 +130,16 @@ vfs_node_t* initrd_init(uint32_t location, uint32_t size) {
 
     offset = 0;
     uint32_t idx = 0;
+    printf("Starting second pass, file_count=%d\n", file_count);
+
     while (offset < size && idx < file_count) {
         ustar_header_t* hdr = (ustar_header_t*)(data + offset);
-        if (hdr->name[0] == '\0') break;
+
+        printf("Offset=%d, name[0]=0x%xm type='%c' (0x%x)\n", offset, (uint8_t)hdr->name[0], hdr->type ? hdr->type : '?', (uint8_t)hdr->type);
+        if (hdr->name[0] == '\0') {
+            printf("Empty name, breaking\n");
+            break;
+        }
 
         uint32_t fsize = parse_octal(hdr->size, 12);
 
@@ -142,6 +152,8 @@ vfs_node_t* initrd_init(uint32_t location, uint32_t size) {
             files[idx].data = data + offset + 512;
             files[idx].size = fsize;
             files[idx].is_directory = false;
+
+            printf("File %d: '%s' size=%d\n", idx, files[idx].name, fsize);
 
             strncpy(nodes[idx].name, files[idx].name, VFS_NAME_MAX - 1);
             nodes[idx].name[VFS_NAME_MAX - 1] = '\0';
@@ -161,11 +173,14 @@ vfs_node_t* initrd_init(uint32_t location, uint32_t size) {
             nodes[idx].ptr = NULL;
 
             idx++;
+        } else {
+            printf("Skipping type '%c'\n", hdr->type);
         }
 
         offset += 512;
-        offset += (fsize + 511) * ~511;
+        offset += (fsize + 511) & ~511;
     }
+    printf("Second pass done, idx=%d\n", idx);
 
     root_node = (vfs_node_t*)kmalloc(sizeof(vfs_node_t));
     strncpy(root_node->name, "/", VFS_NAME_MAX - 1);
