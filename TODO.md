@@ -23,11 +23,11 @@
         - [x] Multithreading
         - [x] Hardware Abstraction
         - [x] Algorithms
-    - [ ] Paging
+    - [x] Paging
         - [x] Higher Half
-        - [ ] Permissions
+        - [x] Permissions
             - Its basic for now, we have a write protection bit on paging but in the future for full vm, we need to set perms on every single section. 
-    - [ ] More x86
+    - [x] More x86
         - [x] Segments
             - Need to do some deeper reading on GDTs
         - [x] Interrupts
@@ -38,16 +38,16 @@
         - [x] Physical mem manager
         - [x] Virtual mem allocator
         - [x] Heap allocator
-    - [ ] Scheduler
+    - [x] Scheduler
         - [x] Multiprocessing
         - [x] Priority Levels
         - [x] Thread lists
 
 - [ ] [Creating an operating system](https://wiki.osdev.org/Creating_an_Operating_System)
-    - [ ] Phase 0: Introduction
+    - [x] Phase 0: Introduction
         - [x] Intro
         - [x] Building the latest GCC
-    - [ ] Phase 1: Beginning <- I am here
+    - [x] Phase 1: Beginning <- I am here
         - [x] [Setting up a Cross-Toolchain](https://wiki.osdev.org/GCC_Cross_Compiler)
         - [x] [Creating a Hello World Kernel](https://wiki.osdev.org/Bare_Bones)
         - [x] [Setting up a project](https://wiki.osdev.org/Meaty_Skeleton)
@@ -61,7 +61,7 @@
         - [x] [Multithreaded Kernel](https://wiki.osdev.org/Multithreaded_Kernel)
         - [x] [Keyboard](https://wiki.osdev.org/Keyboard)
         - [x] [Internal Kernel Debugger](https://wiki.osdev.org/Internal_Kernel_Debugger)
-        - [ ] [Filesystem support](https://wiki.osdev.org/Filesystem)
+        - [x] [Filesystem support](https://wiki.osdev.org/Filesystem)
     - [ ] Phase 2: User-Space
         - [ ] User-Space
         - [ ] Program Loading
