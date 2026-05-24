@@ -7,6 +7,7 @@
 #include "../arch/i386/pic.h"
 #include "../arch/i386/timer.h"
 #include "../arch/i386/keyboard.h"
+#include "../arch/i386/tss.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -38,6 +39,10 @@ void kernel_main(uint32_t multiboot_info_phys) {
     printf("=== Welcome to PumpsOS ===\n\n");
 
     gdt_init();
+    
+    uint32_t esp_now;
+    asm volatile("movl %%esp, %0" : "=r"(esp_now));
+    tss_install(5, esp_now);
     //printf("[OK] GDT Initialized\n");
     idt_init();
     //printf("[OK] IDT Initialized\n");
@@ -98,7 +103,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     static const uint8_t halt_loop_payload[] = { 0xEB, 0xFE };
 
-    //task_create_user("user_test", halt_loop_payload, sizeof(halt_loop_payload), PRIORITY_NORMAL);
+    task_create_user("user_test", halt_loop_payload, sizeof(halt_loop_payload), PRIORITY_NORMAL);
 
     //task_create("task_a", task_a, PRIORITY_NORMAL);
     //task_create("task_b", task_b, PRIORITY_HIGH);
