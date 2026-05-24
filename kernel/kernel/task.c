@@ -86,10 +86,10 @@ void scheduler_tick(void) {
     current_task = next;
 
     if (next->page_directory != prev->page_directory) {
-        printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
-            prev->page_directory, next->page_directory);
+        //printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
+            //prev->page_directory, next->page_directory);
         vmm_switch_address_space(next->page_directory);
-        printf("[SCHED] cr3 swap done\n");
+        //printf("[SCHED] cr3 swap done\n");
     }
 
     tss_set_kernel_stack(next->stack_top);
@@ -294,10 +294,10 @@ void task_yield(void) {
 
     // Switch addr space if needed
     if (next->page_directory != prev->page_directory) {
-        printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
-            prev->page_directory, next->page_directory);
+        //printf("[SCHED] cr3 swap: 0x%x -> 0x%x\n",
+            //prev->page_directory, next->page_directory);
         vmm_switch_address_space(next->page_directory);
-        printf("[SCHED] cr3 swap done\n");
+        //printf("[SCHED] cr3 swap done\n");
     }
 
     tss_set_kernel_stack(next->stack_top);

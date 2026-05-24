@@ -63,7 +63,7 @@
         - [x] [Internal Kernel Debugger](https://wiki.osdev.org/Internal_Kernel_Debugger)
         - [x] [Filesystem support](https://wiki.osdev.org/Filesystem)
     - [ ] Phase 2: User-Space
-        - [ ] User-Space
+        - [x] User-Space
         - [ ] Program Loading
         - [ ] System Calls
         - [ ] OS Specific Toolchain
