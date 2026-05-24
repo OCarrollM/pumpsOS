@@ -76,11 +76,17 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
         // Test: read
         vfs_node_t* hello = vfs_lookup("/hello.txt");
+        vfs_node_t* hello2 = vfs_lookup("/readme.txt");
         if (hello) {
             char buf[256];
             uint32_t n = vfs_read(hello, 0, sizeof(buf) - 1, (uint8_t*)buf);
             buf[n] = '\0';
             printf("\nContents of hello.txt (%d bytes):\n%s\n", n, buf);
+        } if (hello2) {
+            char buf2[256];
+            uint32_t n = vfs_read(hello2, 0, sizeof(buf2) - 1, (uint8_t*)buf2);
+            buf2[n] = '\0';
+            printf("\nContents of readme.txt (%d bytes):\n%s\n", n, buf2);
         } else {
             printf("hello.txt not found");
         }
@@ -89,6 +95,11 @@ void kernel_main(uint32_t multiboot_info_phys) {
     }
 
     scheduler_init();
+
+    static const uint8_t halt_loop_payload[] = { 0xEB, 0xFE };
+
+    //task_create_user("user_test", halt_loop_payload, sizeof(halt_loop_payload), PRIORITY_NORMAL);
+
     //task_create("task_a", task_a, PRIORITY_NORMAL);
     //task_create("task_b", task_b, PRIORITY_HIGH);
     scheduler_enable_preemption();

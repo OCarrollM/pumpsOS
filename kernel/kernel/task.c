@@ -9,6 +9,10 @@
 #define TASK_STACK_SIZE PAGE_SIZE
 #define PREEMPT_QUANTUM 10
 
+#define USER_CODE_BASE 0x00400000
+#define USER_STACK_BASE 0x00500000
+#define USER_STACK_TOP (USER_STACK_BASE + PAGE_SIZE)
+
 extern void task_switch(uint32_t* old_esp, uint32_t new_esp);
 
 static task_t* current_task = NULL;
@@ -88,6 +92,8 @@ void scheduler_tick(void) {
         printf("[SCHED] cr3 swap done\n");
     }
 
+    tss_set_kernel_stack(next->stack_top);
+
     task_switch(&prev->esp, next->esp);
 }
 
@@ -144,6 +150,8 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     task->state = TASK_READY;
     task->priority = priority;
     task->stack_base = (uint32_t)stack;
+    task->stack_top = (uint32_t)stack + TASK_STACK_SIZE;
+    task->is_user = false;
     task->page_directory = pd;
     task->wake_tick = 0;
 
@@ -162,9 +170,109 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     task->next = current_task->next;
     current_task->next = task;
 
-    printf("Created task '%s' (id=%id, stack=0x%x)\n", task->name, task->id, task->priority, task->page_directory);
+    printf("Created task '%s' (id=%d, priority=%d, pd=0x%x)\n", task->name, task->id, task->priority, task->page_directory);
 
     return task;
+}
+
+task_t* task_create_user(const char* name, const void* user_payload, uint32_t payload_size, uint32_t priority) {
+    if (payload_size > PAGE_SIZE) {
+        printf("User payload is too large for one page (%d > %d)\n", payload_size, PAGE_SIZE);
+        return NULL;
+    }
+
+    task_t* task = (task_t*)kmalloc(sizeof(task_t));
+    if (!task) return NULL;
+
+    void* kstack = kmalloc(TASK_STACK_SIZE);
+    if (!kstack) {
+        kfree(task);
+        return NULL;
+    }
+
+    // Create users addr space here
+    uint32_t pd_phys = vmm_create_address_space();
+    if (pd_phys == 0) {
+        kfree(kstack);
+        kfree(task);
+        return NULL;
+    }
+
+    // Allocate and map user code
+    uint32_t code_phys = pmm_alloc_page();
+    if (code_phys == 0) goto fail;
+
+    // Map into new PD
+    uint32_t saved_pd = vmm_get_current_address_space();
+    vmm_switch_address_space(pd_phys);
+
+    if (!vmm_map_page(USER_CODE_BASE, code_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
+        vmm_switch_address_space(saved_pd);
+        pmm_free_page(code_phys);
+        goto fail;
+    }
+
+    // Copy this payload into a new user code page
+    memcpy((void*)USER_CODE_BASE, user_payload, payload_size);
+
+    // Allocate and map user stack
+    uint32_t stack_phys = pmm_alloc_page();
+    if (stack_phys == 0) {
+        vmm_switch_address_space(saved_pd);
+        goto fail;
+    }
+
+    if (!vmm_map_page(USER_STACK_BASE, stack_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
+        vmm_switch_address_space(saved_pd);
+        pmm_free_page(stack_phys);
+        goto fail;
+    }
+
+    // Restore callers addr space
+    vmm_switch_address_space(saved_pd);
+
+    // Fill task struct
+    task->id = next_tast_id++;
+    strncpy(task->name, name, 31);
+    task->name[31] = '\0';
+    task->state = TASK_READY;
+    task->priority = priority;
+    task->stack_base = (uint32_t)kstack;
+    task->stack_top = (uint32_t)kstack + TASK_STACK_SIZE;
+    task->is_user = true;
+    task->user_entry = USER_CODE_BASE;
+    task->user_stack_top = USER_STACK_TOP;
+    task->page_directory = pd_phys;
+    task->wake_tick = 0;
+
+    // Build kernel stack
+    extern void user_mode_enter(void);
+    uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
+
+    *(--sp) = USER_STACK_TOP;             // arg2 
+    *(--sp) = USER_CODE_BASE;             // arg1 
+    *(--sp) = 0xDEADBEEF;                 // fake return addr (user_mode_enter never returns) 
+    *(--sp) = (uint32_t)user_mode_enter;  // return EIP for task_switch's ret 
+    *(--sp) = 0;                          // ebx 
+    *(--sp) = 0;                          // esi 
+    *(--sp) = 0;                          // edi 
+    *(--sp) = 0;                          // ebp 
+
+    task->esp = (uint32_t)sp;
+
+    // Link into task list
+    task->next = current_task->next;
+    current_task->next = task;
+
+    printf("Created user task '%s' (id=%d, pd=0x%x)\n", task->name, task->id, task->page_directory);
+
+    return task;
+
+fail:
+    vmm_destroy_address_space(pd_phys);
+    kfree(kstack);
+    kfree(task);
+    return NULL;
 }
 
 void task_yield(void) {
@@ -191,6 +299,8 @@ void task_yield(void) {
         vmm_switch_address_space(next->page_directory);
         printf("[SCHED] cr3 swap done\n");
     }
+
+    tss_set_kernel_stack(next->stack_top);
 
     task_switch(&prev->esp, next->esp);
 }

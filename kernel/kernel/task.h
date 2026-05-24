@@ -25,6 +25,10 @@ typedef struct task {
     uint32_t priority;
     uint32_t esp; // Saved pointer (for context switching)
     uint32_t stack_base; // Base of stack
+    uint32_t stack_top; // Top of kernel stack
+    bool is_user; // only if in user mode
+    uint32_t user_entry; // user-mode entry point 
+    uint32_t user_stack_top; // top of user stack
     uint32_t page_directory; // Physical addr of this tasks page directory
     uint32_t wake_tick; // If sleep, count to wake
     struct task* next; // Linked list of tasks
@@ -40,5 +44,6 @@ void scheduler_tick(void);
 void scheduler_enable_preemption(void);
 void scheduler_disable_preemption(void);
 void scheduler_print_tasks(void); // Debug
+task_t* task_create_user(const char* name, const void* user_payload, uint32_t payload_size, uint32_t priority);
 
 #endif

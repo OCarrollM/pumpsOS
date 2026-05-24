@@ -35,7 +35,6 @@ kernel/pmm.o \
 kernel/vmm.o \
 kernel/heap.o \
 kernel/task.o \
-arch/i386/task_switch.o \
 kernel/panic.o \
 kernel/debugger.o \
 kernel/vfs.o \
@@ -72,7 +71,7 @@ $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 .c.o:
 	$(CC) -MD -c $< -o $@ -std=gnu11 $(CFLAGS) $(CPPFLAGS)
 
-.S.o:
+.s.o:
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 clean:
