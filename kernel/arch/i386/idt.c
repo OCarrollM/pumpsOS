@@ -75,5 +75,7 @@ void idt_init(void) {
     idt_set_gate(46, (uint32_t)irq14, GDT_KERNEL_CODE, IDT_INTERRUPT_GATE);
     idt_set_gate(47, (uint32_t)irq15, GDT_KERNEL_CODE, IDT_INTERRUPT_GATE);
 
+    idt_set_gate(128, (uint32_t)isr128, GDT_KERNEL_CODE, IDT_SYSCALL_GATE);
+
     idt_flush((uint32_t)&idtp);
 }

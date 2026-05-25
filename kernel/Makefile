@@ -39,6 +39,7 @@ kernel/panic.o \
 kernel/debugger.o \
 kernel/vfs.o \
 kernel/initrd.o \
+kernel/syscall.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

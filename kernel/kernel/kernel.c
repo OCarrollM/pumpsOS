@@ -18,21 +18,22 @@
 #include "../kernel/debugger.h"
 #include "../kernel/vfs.h"
 #include "../kernel/initrd.h"
+#include "../kernel/syscall.h"
 
 
-static void task_a(void) {
-    for (int i = 0; i < 5; i++) {
-        printf("[A] iteration %d\n", i);
-        for (volatile int j = 0; j < 10000000; j++) { }
-    }
-}
+// static void task_a(void) {
+//     for (int i = 0; i < 5; i++) {
+//         printf("[A] iteration %d\n", i);
+//         for (volatile int j = 0; j < 10000000; j++) { }
+//     }
+// }
 
-static void task_b(void) {
-    for (int i = 0; i < 5; i++) {
-        printf("[B] iteration %d\n", i);
-        for (volatile int j = 0; j < 10000000; j++) { }
-    }
-}
+// static void task_b(void) {
+//     for (int i = 0; i < 5; i++) {
+//         printf("[B] iteration %d\n", i);
+//         for (volatile int j = 0; j < 10000000; j++) { }
+//     }
+// }
 
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
@@ -45,6 +46,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
     tss_install(5, esp_now);
     //printf("[OK] GDT Initialized\n");
     idt_init();
+
+    syscall_init();
     //printf("[OK] IDT Initialized\n");
     pic_init();
     //printf("[OK] PIC Initialized\n");
@@ -101,9 +104,15 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     scheduler_init();
 
-    static const uint8_t halt_loop_payload[] = { 0xEB, 0xFE };
+    static const uint8_t user_payload[] = {
+        0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x01, 0x00, 0x00, 0x00, 0xB9, 0x24,
+        0x00, 0x40, 0x00, 0xBA, 0x12, 0x00, 0x00, 0x00, 0xCD, 0x80, 0xB8, 0x00,
+        0x00, 0x00, 0x00, 0xBB, 0x00, 0x00, 0x00, 0x00, 0xCD, 0x80, 0xEB, 0xFE,
+        0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x72,
+        0x69, 0x6E, 0x67, 0x20, 0x33, 0x0A,
+    };
 
-    task_create_user("user_test", halt_loop_payload, sizeof(halt_loop_payload), PRIORITY_NORMAL);
+    task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
 
     //task_create("task_a", task_a, PRIORITY_NORMAL);
     //task_create("task_b", task_b, PRIORITY_HIGH);

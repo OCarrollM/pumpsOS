@@ -20,6 +20,7 @@ struct idt_ptr {
 
 #define IDT_INTERRUPT_GATE 0x8E
 #define IDT_TRAP_GATE 0x8F
+#define IDT_SYSCALL_GATE 0xEE
 
 void idt_init(void);
 void idt_set_gate(uint8_t num, uint32_t offset, uint16_t selector, uint8_t type_attr);

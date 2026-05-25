@@ -65,7 +65,7 @@
     - [ ] Phase 2: User-Space
         - [x] User-Space
         - [ ] Program Loading
-        - [ ] System Calls
+        - [x] System Calls
         - [ ] OS Specific Toolchain
         - [ ] Creating a C Library
         - [ ] Fork and Execute
