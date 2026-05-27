@@ -19,6 +19,7 @@
 #include "../kernel/vfs.h"
 #include "../kernel/initrd.h"
 #include "../kernel/syscall.h"
+#include "../kernel/elf.h"
 
 
 // static void task_a(void) {
@@ -124,6 +125,14 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //printf("Before breakpoint\n");
     BREAKPOINT();
     //printf("After breakpoint\n");
+
+    vfs_node_t* n = vfs_lookup("/readme.txt");
+    if (n) {
+        Elf32_Ehdr hdr;
+        vfs_read(n, 0, sizeof(hdr), (uint8_t*)&hdr);
+        printf("validate readme.txt: %d (expect 0)\n", elf_validate(&hdr));
+    }
+
     printf("> ");
     while(1) {
         char c = keyboard_getchar();

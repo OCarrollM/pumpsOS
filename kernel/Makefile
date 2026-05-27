@@ -40,6 +40,7 @@ kernel/debugger.o \
 kernel/vfs.o \
 kernel/initrd.o \
 kernel/syscall.o \
+kernel/elf.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
