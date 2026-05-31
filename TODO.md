@@ -64,7 +64,7 @@
         - [x] [Filesystem support](https://wiki.osdev.org/Filesystem)
     - [ ] Phase 2: User-Space
         - [x] User-Space
-        - [ ] Program Loading
+        - [x] Program Loading
         - [x] System Calls
         - [ ] OS Specific Toolchain
         - [ ] Creating a C Library

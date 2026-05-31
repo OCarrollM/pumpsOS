@@ -71,7 +71,7 @@ int elf_validate(const Elf32_Ehdr* hdr) {
 // reachable
 uint32_t elf_load(vfs_node_t* node, uint32_t pd_phys) {
     Elf32_Ehdr ehdr;
-    if (node->length <- sizeof(ehdr)) {
+    if (node->length < sizeof(ehdr)) {
         printf("File too small for header (%d bytes)\n", node->length);
         return 0;
     }
