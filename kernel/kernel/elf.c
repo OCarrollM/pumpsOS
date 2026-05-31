@@ -34,7 +34,7 @@ int elf_validate(const Elf32_Ehdr* hdr) {
 
     // Must target i386
     if (hdr->e_machine != EM_386) {
-        printfO("Wrong architecture (e_machine=%d)\n", hdr->e_machine);
+        printf("Wrong architecture (e_machine=%d)\n", hdr->e_machine);
         return 0;
     }
 
