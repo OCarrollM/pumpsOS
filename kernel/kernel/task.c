@@ -2,6 +2,8 @@
 #include "heap.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "elf.h"
+#include "vfs.h"
 #include "../arch/i386/isr.h"
 #include <stdio.h>
 #include <string.h>
@@ -273,6 +275,88 @@ fail:
     kfree(kstack);
     kfree(task);
     return NULL;
+}
+
+task_t* task_create_user_elf(const char* name, const char* path, uint32_t priority) {
+    vfs_node_t* node = vfs_lookup(path);
+    if (!node) {
+        printf("Cannot find ELF at %s\n", path);
+        return NULL;
+    }
+
+    // Allocate task struct and kernel stack
+    task_t* task = (task_t*)kmalloc(sizeof(task_t));
+    if (!task) return NULL;
+
+    void* kstack = kmalloc(TASK_STACK_SIZE);
+    if (!kstack) {
+        kfree(task);
+        return NULL;
+    }
+
+    // Create fresh addr space and load elf into it
+    uint32_t pd_phys = vmm_create_address_space();
+    if (pd_phys == 0) {
+        kfree(kstack);
+        kfree(task);
+        return NULL;
+    }
+
+    uint32_t entry = elf_load(node, pd_phys);
+    if (entry == 0) {
+        vmm_destroy_address_space(pd_phys);
+        kfree(kstack);
+        kfree(task);
+        return NULL;
+    }
+
+    uint32_t saved_pd = vmm_get_current_address_space();
+    vmm_switch_address_space(pd_phys);
+
+    uint32_t stack_phys = pmm_alloc_page();
+    if (stack_phys == 0 || !vmm_map_page(USER_STACK_BASE, stack_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
+        if (stack_phys) pmm_free_page(stack_phys);
+        vmm_switch_address_space(saved_pd);
+        vmm_destroy_address_space(pd_phys);
+        kfree(kstack);
+        kfree(task);
+        return NULL;
+    }
+
+    vmm_switch_address_space(saved_pd);
+
+    // Fill in the task struct
+    task->id = next_tast_id++;
+    strncpy(task->name, name, 31);
+    task->name[31] = '\0';
+    task->state = TASK_READY;
+    task->priority = priority;
+    task->stack_base = (uint32_t)kstack;
+    task->stack_top = (uint32_t)kstack + TASK_STACK_SIZE;
+    task->is_user = true;
+    task->user_entry = entry;
+    task->user_stack_top = USER_STACK_TOP;
+    task->page_directory = pd_phys;
+    task->wake_tick = 0;
+
+    extern void user_mode_enter(void);
+    uint32_t* sp = (uint32_t*)(uint8_t*)kstack + TASK_STACK_SIZE;
+
+    *(--sp) = USER_STACK_TOP;
+    *(--sp) = entry;
+    *(--sp) = 0xDEADBEEF;
+    *(--sp) = (uint32_t)user_mode_enter;
+    *(--sp) = 0;  *(--sp) = 0;
+    *(--sp) = 0;  *(--sp) = 0;
+
+    task->esp = (uint32_t)sp;
+    task->next = current_task->next;
+    current_task->next = task;
+
+    printf("Created ELF task '%s' (id=%d, entry=0x%x, pd=0x%x)\n",
+        task->name, task->id, entry, task->page_directory);
+
+    return task;
 }
 
 void task_yield(void) {

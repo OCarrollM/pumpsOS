@@ -85,6 +85,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     }
 
     task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
+    task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
     scheduler_enable_preemption();
 
     printf("> ");

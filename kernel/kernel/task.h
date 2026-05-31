@@ -45,5 +45,6 @@ void scheduler_enable_preemption(void);
 void scheduler_disable_preemption(void);
 void scheduler_print_tasks(void); // Debug
 task_t* task_create_user(const char* name, const void* user_payload, uint32_t payload_size, uint32_t priority);
+task_t* task_create_user_elf(const char* name, const char* path, uint32_t priority);
 
 #endif
