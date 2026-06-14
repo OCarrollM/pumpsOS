@@ -340,7 +340,7 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     task->wake_tick = 0;
 
     extern void user_mode_enter(void);
-    uint32_t* sp = (uint32_t*)(uint8_t*)kstack + TASK_STACK_SIZE;
+    uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
 
     *(--sp) = USER_STACK_TOP;
     *(--sp) = entry;
@@ -426,4 +426,89 @@ void scheduler_print_tasks(void) {
         t = t->next;
     } while (t != task_list);
     printf("\n");
+}
+
+// Forking
+
+// Fork the curr task, this will construct a new task with its own
+// kernel stack, addr, and own ISR frame. will return task_t on success NULL if not
+task_t* task_fork(struct registers* parent_regs) {
+    task_t* parent = current_task;
+
+    // Must be user task
+    if (!parent->is_user) {
+        printf("Called from non-use task %s\n", parent->name);
+        return NULL;
+    }
+
+    task_t* child = (task_t*)kmalloc(sizeof(task_t));
+    if (!child) return NULL;
+
+    void* kstack = kmalloc(TASK_STACK_SIZE);
+    if (!kstack) {
+        kfree(child);
+        return NULL;
+    }
+
+    uint32_t pd_phys = vmm_clone_address_space(parent->page_directory);
+    if (pd_phys == 0) {
+        kfree(kstack);
+        kfree(child);
+        return NULL;
+    }
+
+    // Build the childs kernel stack
+    extern void isr_return(void);
+
+    uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
+
+    // iret frame
+    *(--sp) = parent_regs->ss;
+    *(--sp) = parent_regs->useresp;
+    *(--sp) = parent_regs->eflags;
+    *(--sp) = parent_regs->cs;
+    *(--sp) = parent_regs->eip;
+    *(--sp) = parent_regs->err_code;
+    *(--sp) = parent_regs->int_no;
+
+    *(--sp) = 0;                         /* eax = 0 in child */
+    *(--sp) = parent_regs->ecx;
+    *(--sp) = parent_regs->edx;
+    *(--sp) = parent_regs->ebx;
+    *(--sp) = 0;                         /* esp_dummy, popa ignores */
+    *(--sp) = parent_regs->ebp;
+    *(--sp) = parent_regs->esi;
+    *(--sp) = parent_regs->edi;
+    *(--sp) = parent_regs->ds;
+    *(--sp) = (uint32_t)isr_return;
+
+    *(--sp) = 0;  /* ebp */
+    *(--sp) = 0;  /* edi */
+    *(--sp) = 0;  /* esi */
+    *(--sp) = 0;  /* ebx */
+
+    child->id = next_tast_id++;
+    strncpy(child->name, parent->name, 31);
+    child->name[31] = '\0';
+
+    child->state = TASK_READY;
+    child->priority = parent->priority;
+    child->stack_base = (uint32_t)kstack;
+    child->stack_top = (uint32_t)kstack + TASK_STACK_SIZE;
+    child->is_user = true;
+    child->user_entry = parent->user_entry;   /* informational */
+    child->user_stack_top = parent->user_stack_top;
+    child->page_directory = pd_phys;
+    child->wake_tick = 0;
+    child->esp = (uint32_t)sp;
+
+    /* Link into the task list. */
+    child->next = current_task->next;
+    current_task->next = child;
+
+    printf("[FORK] parent='%s' (id=%d) -> child='%s' (id=%d, pd=0x%x)\n",
+           parent->name, parent->id, child->name, child->id,
+           child->page_directory);
+
+    return child;
 }

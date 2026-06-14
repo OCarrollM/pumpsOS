@@ -94,6 +94,11 @@ isr_common_stub:
     push %esp
     call isr_handler
     add $4, %esp
+
+    /* Re entry point for forking */
+.global isr_return
+.type isr_return, @function
+isr_return:
     pop %eax
     mov %ax, %ds
     mov %ax, %es

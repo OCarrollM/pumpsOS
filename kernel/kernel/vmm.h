@@ -25,6 +25,7 @@ uint32_t vmm_create_address_space(void);
 void vmm_destroy_address_space(uint32_t pd_phys);
 void vmm_switch_address_space(uint32_t pd_phys);
 uint32_t vmm_get_current_address_space(void);
+uint32_t vmm_clone_address_space(uint32_t src_pd_phys);
 
 void vmm_print_mappings(void);
 
