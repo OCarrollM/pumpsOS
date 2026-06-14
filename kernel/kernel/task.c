@@ -5,6 +5,7 @@
 #include "elf.h"
 #include "vfs.h"
 #include "../arch/i386/isr.h"
+#include "../arch/i386/tss.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,8 +25,29 @@ static uint32_t next_tast_id = 1;
 static volatile bool preemption_enabled = false;
 static uint32_t preempt_counter = 0;
 
+static void scheduler_validate_list(const char* where) {
+    if (!task_list) return;
+    task_t* t = task_list;
+    int count = 0;
+    do {
+        if (!t) {
+            printf("[BUG @%s] NULL task pointer in list after %d hops\n",
+                   where, count);
+            return;
+        }
+        if (count > 100) {
+            printf("[BUG @%s] list walk exceeded 100 hops, corrupted\n",
+                   where);
+            return;
+        }
+        count++;
+        t = t->next;
+    } while (t != task_list);
+}
+
 /* Find next runnable task in the list */
 static task_t* pick_next_task(void) {
+    scheduler_validate_list("pick_next_task");
     if (task_list == NULL) {
         return NULL;
     }
@@ -512,3 +534,4 @@ task_t* task_fork(struct registers* parent_regs) {
 
     return child;
 }
+
