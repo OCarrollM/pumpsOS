@@ -47,18 +47,18 @@ static void scheduler_validate_list(const char* where) {
 
 /* Find next runnable task in the list */
 static task_t* pick_next_task(void) {
-    scheduler_validate_list("pick_next_task");
-    if (task_list == NULL) {
-        return NULL;
-    }
+    if (task_list == NULL) return NULL;
 
     task_t* best = NULL;
     uint32_t best_priority = 0;
-
     task_t* start = current_task ? current_task->next : task_list;
     task_t* candidate = start;
 
     do {
+        if (candidate == NULL) {              /* ← ADD this guard */
+            printf("[SCHED BUG] NULL candidate in list walk!\n");
+            return best;   /* don't crash; return whatever we found */
+        }
         if (candidate->state == TASK_READY) {
             if (best == NULL || candidate->priority > best_priority) {
                 best = candidate;
@@ -168,6 +168,8 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
         return NULL;
     }
 
+    scheduler_disable_preemption();
+
     task->id = next_tast_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
@@ -193,6 +195,8 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
 
     task->next = current_task->next;
     current_task->next = task;
+
+    scheduler_enable_preemption();
 
     printf("Created task '%s' (id=%d, priority=%d, pd=0x%x)\n", task->name, task->id, task->priority, task->page_directory);
 
@@ -255,6 +259,8 @@ task_t* task_create_user(const char* name, const void* user_payload, uint32_t pa
     // Restore callers addr space
     vmm_switch_address_space(saved_pd);
 
+    scheduler_disable_preemption();
+
     // Fill task struct
     task->id = next_tast_id++;
     strncpy(task->name, name, 31);
@@ -287,6 +293,8 @@ task_t* task_create_user(const char* name, const void* user_payload, uint32_t pa
     // Link into task list
     task->next = current_task->next;
     current_task->next = task;
+
+    scheduler_enable_preemption();
 
     printf("Created user task '%s' (id=%d, pd=0x%x)\n", task->name, task->id, task->page_directory);
 
@@ -347,6 +355,8 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
 
     vmm_switch_address_space(saved_pd);
 
+    scheduler_disable_preemption();
+
     // Fill in the task struct
     task->id = next_tast_id++;
     strncpy(task->name, name, 31);
@@ -374,6 +384,8 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     task->esp = (uint32_t)sp;
     task->next = current_task->next;
     current_task->next = task;
+
+    scheduler_enable_preemption();
 
     printf("Created ELF task '%s' (id=%d, entry=0x%x, pd=0x%x)\n",
         task->name, task->id, entry, task->page_directory);
@@ -455,6 +467,7 @@ void scheduler_print_tasks(void) {
 // Fork the curr task, this will construct a new task with its own
 // kernel stack, addr, and own ISR frame. will return task_t on success NULL if not
 task_t* task_fork(struct registers* parent_regs) {
+    scheduler_disable_preemption();
     task_t* parent = current_task;
 
     // Must be user task
@@ -464,7 +477,10 @@ task_t* task_fork(struct registers* parent_regs) {
     }
 
     task_t* child = (task_t*)kmalloc(sizeof(task_t));
-    if (!child) return NULL;
+    if (!child) {
+        scheduler_enable_preemption();
+        return NULL;
+    }
 
     void* kstack = kmalloc(TASK_STACK_SIZE);
     if (!kstack) {
@@ -476,6 +492,7 @@ task_t* task_fork(struct registers* parent_regs) {
     if (pd_phys == 0) {
         kfree(kstack);
         kfree(child);
+        scheduler_enable_preemption();
         return NULL;
     }
 
@@ -528,10 +545,7 @@ task_t* task_fork(struct registers* parent_regs) {
     child->next = current_task->next;
     current_task->next = child;
 
-    printf("[FORK] parent='%s' (id=%d) -> child='%s' (id=%d, pd=0x%x)\n",
-           parent->name, parent->id, child->name, child->id,
-           child->page_directory);
-
+    scheduler_enable_preemption();
     return child;
 }
 

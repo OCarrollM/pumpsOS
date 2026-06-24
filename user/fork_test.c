@@ -54,27 +54,27 @@ static int itoa(int v, char* buf) {
 
 // entry
 void _start(void) {
-    // int pid = sys_fork();
+    int pid = sys_fork();
     
-    // if (pid == 0) {
-    //     static const char msg[] = "child: hello from fork\n";
-    //     sys_write(1, msg, sizeof(msg) - 1);
-    //     sys_exit(0);
-    // } else if (pid > 0) {
-    //     char buf[64];
-    //     static const char prefix[] = "parent: child pid is ";
-    //     int i = 0;
-    //     for (unsigned k = 0; k < sizeof(prefix) - 1; k++) buf[i++] = prefix[k];
-    //     i += itoa(pid, buf + 1);
-    //     buf[i++] = '\n';
-    //     sys_write(1, buf, i);
-    //     sys_exit(0);
-    // } else {
-    //     static const char err[] = "fork failed\n";
-    //     sys_write(1, err, sizeof(err) - 1);
-    //     sys_exit(1);
-    // }
-    static const char msg[] = "fork_test started\n";
-    sys_write(1, msg, sizeof(msg) - 1);
-    sys_exit(0);
+    if (pid == 0) {
+        static const char msg[] = "child: hello from fork\n";
+        sys_write(1, msg, sizeof(msg) - 1);
+        sys_exit(0);
+    } else if (pid > 0) {
+        char buf[64];
+        static const char prefix[] = "parent: child pid is ";
+        int i = 0;
+        for (unsigned k = 0; k < sizeof(prefix) - 1; k++) buf[i++] = prefix[k];
+        i += itoa(pid, buf + 1);
+        buf[i++] = '\n';
+        sys_write(1, buf, i);
+        sys_exit(0);
+    } else {
+        static const char err[] = "fork failed\n";
+        sys_write(1, err, sizeof(err) - 1);
+        sys_exit(1);
+    }
+    // static const char msg[] = "fork_test started\n";
+    // sys_write(1, msg, sizeof(msg) - 1);
+    // sys_exit(0);
 }

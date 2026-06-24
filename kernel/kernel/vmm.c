@@ -233,44 +233,49 @@ void vmm_print_mappings(void) {
 
 // Clone a addr space and return physical addr of new page
 uint32_t vmm_clone_address_space(uint32_t src_pd_phys) {
-    // We do this by creating a new addr space and then for each user hald
-    // PDE present, we allocate a page table
     uint32_t child_pd = vmm_create_address_space();
     if (child_pd == 0) return 0;
 
-    // Need to be in the source addr to read its pages
+    uint8_t* page_buffer = (uint8_t*)kmalloc(PAGE_SIZE);
+    if (!page_buffer) {
+        vmm_destroy_address_space(child_pd);
+        return 0;
+    }
+
     uint32_t saved_pd = vmm_get_current_address_space();
     if (saved_pd != src_pd_phys) {
-        // We are saying that is we arent in the address space then switch
         vmm_switch_address_space(src_pd_phys);
     }
 
     uint32_t* src_pd_virt = (uint32_t*)PAGE_DIR_VIRTUAL;
-    uint8_t page_buffer[PAGE_SIZE];
+    /* NOTE: page_buffer is the kmalloc'd heap pointer above.
+     * Do NOT declare a stack array here -- a 4 KB stack local
+     * overflows the kernel stack. */
 
     for (uint32_t pdi = 0; pdi < 768; pdi++) {
         if (!(src_pd_virt[pdi] & PTE_PRESENT)) {
-            continue; // Skip
+            continue;
         }
 
         uint32_t* src_pt = (uint32_t*)(PAGE_TABLE_BASE + pdi * PAGE_SIZE);
 
         for (uint32_t pti = 0; pti < 1024; pti++) {
             if (!(src_pt[pti] & PTE_PRESENT)) {
-                continue; // Skip
+                continue;
             }
 
             uint32_t vaddr = (pdi << 22) | (pti << 12);
             uint32_t src_flags = src_pt[pti] & 0xFFF;
 
-            // Copy the page contents into kernel buffer
+            /* Read source page (we're in source AS). */
             memcpy(page_buffer, (void*)vaddr, PAGE_SIZE);
-            // Switch to child to install copy
+
+            /* Switch to child to install the copy. */
             vmm_switch_address_space(child_pd);
 
             uint32_t child_phys = pmm_alloc_page();
             if (child_phys == 0) {
-                // Out of mem mid clone, kill
+                kfree(page_buffer);
                 vmm_switch_address_space(saved_pd);
                 vmm_destroy_address_space(child_pd);
                 return 0;
@@ -278,6 +283,7 @@ uint32_t vmm_clone_address_space(uint32_t src_pd_phys) {
 
             if (!vmm_map_page(vaddr, child_phys, src_flags)) {
                 pmm_free_page(child_phys);
+                kfree(page_buffer);
                 vmm_switch_address_space(saved_pd);
                 vmm_destroy_address_space(child_pd);
                 return 0;
@@ -285,12 +291,12 @@ uint32_t vmm_clone_address_space(uint32_t src_pd_phys) {
 
             memcpy((void*)vaddr, page_buffer, PAGE_SIZE);
 
-            // Go back to source for next iter
+            /* Back to source for the next iteration. */
             vmm_switch_address_space(src_pd_phys);
         }
     }
 
-    // Restore callers addr space
+    kfree(page_buffer);
     vmm_switch_address_space(saved_pd);
     return child_pd;
 }
