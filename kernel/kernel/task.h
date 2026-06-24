@@ -33,12 +33,13 @@ typedef struct task {
     uint32_t page_directory; // Physical addr of this tasks page directory
     uint32_t wake_tick; // If sleep, count to wake
     struct task* next; // Linked list of tasks
+    struct task* parent; // Forking parent, NULL if none
+    int exit_code; // Exit
 } task_t;
 
 void scheduler_init(void); // Initialize the scheduler
 task_t* task_create(const char* name, void (*entry)(void), uint32_t priority); // Create a new kernel
 void task_yield(void); // Give up the CPU
-void task_exit(void); // Terminate task
 void task_set_priority(task_t* task, uint32_t priority);
 task_t* task_current(void); // Get current task
 void scheduler_tick(void);
@@ -48,5 +49,7 @@ void scheduler_print_tasks(void); // Debug
 task_t* task_create_user(const char* name, const void* user_payload, uint32_t payload_size, uint32_t priority);
 task_t* task_create_user_elf(const char* name, const char* path, uint32_t priority);
 task_t* task_fork(struct registers* parent_regs);
+void task_exit(int code);
+int32_t task_wait(int* status_user);
 
 #endif

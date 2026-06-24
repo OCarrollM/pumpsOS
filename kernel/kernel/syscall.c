@@ -18,9 +18,13 @@ static int32_t sys_exit(struct registers* regs) {
 
     printf("exit(%d) from task '%s'\n", (int)regs->ebx, task_current()->name);
 
-    task_exit();
+    task_exit((int)regs->ebx);
 
     return 0;
+}
+
+static int32_t sys_wait(struct registers* regs) {
+    return task_wait((int*)regs->ebx);
 }
 
 static int32_t sys_write(struct registers* regs) {
@@ -92,14 +96,14 @@ static int32_t sys_execve(struct registers* regs) {
     uint32_t entry = elf_load(node, self->page_directory);
     if (entry == 0) {
         printf("elf_load failed, killing task\n");
-        task_exit();
+        task_exit(-1);
         return -1;
     }
 
     uint32_t stack_phys = pmm_alloc_page();
     if (stack_phys == 0 || !vmm_map_page(USER_STACK_BASE, stack_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
         printf("No user stack, killing task\n");
-        task_exit();
+        task_exit(-1);
         return -1;
     }
 
@@ -125,6 +129,7 @@ static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_WRITE] = sys_write,
     [SYS_FORK] = sys_fork,
     [SYS_EXECVE] = sys_execve,
+    [SYS_WAIT] = sys_wait,
 };
 
 void syscall_dispatch(struct registers* regs) {

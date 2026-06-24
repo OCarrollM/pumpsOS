@@ -163,6 +163,7 @@ uint32_t vmm_create_address_space(void) {
     }
 
     uint32_t scratch_vaddr = 0xE0000000;
+    uint32_t scratch_pdi   = scratch_vaddr >> 22;   /* = 896 */
 
     if (!vmm_map_page(scratch_vaddr, new_pd_phys, PTE_PRESENT | PTE_WRITABLE)) {
         pmm_free_page(new_pd_phys);
@@ -172,14 +173,19 @@ uint32_t vmm_create_address_space(void) {
     uint32_t* new_pd = (uint32_t*)scratch_vaddr;
     uint32_t* current_pd = vmm_get_page_directory();
 
+    /* Zero the user half. */
     for (int i = 0; i < 768; i++) {
-        new_pd[i] = 0; // 0 the lower half
+        new_pd[i] = 0;
     }
 
+    /* Copy the kernel half (shared mappings). */
     for (int i = 768; i < 1023; i++) {
         new_pd[i] = current_pd[i];
     }
 
+    new_pd[scratch_pdi] = 0;
+
+    /* Recursive entry: PD maps itself at 0xFFC00000 / 0xFFFFF000. */
     new_pd[1023] = new_pd_phys | PTE_PRESENT | PTE_WRITABLE;
 
     vmm_unmap_page(scratch_vaddr);
@@ -192,6 +198,33 @@ void vmm_switch_address_space(uint32_t pd_phys) {
 }
 
 void vmm_destroy_address_space(uint32_t pd_phys) {
+    // uint32_t saved_pd = vmm_get_current_address_space();
+
+    // // Switch addr to be safe
+    // vmm_switch_address_space(pd_phys);
+
+    // uint32_t* pd_virt = (uint32_t*)PAGE_DIR_VIRTUAL;
+
+    // // Free only user half
+    // for (uint32_t pdi = 0; pdi < 768; pdi++) {
+    //     if (!(pd_virt[pdi] & PTE_PRESENT)) continue;
+
+    //     uint32_t* pt = (uint32_t*)(PAGE_TABLE_BASE + pdi + PAGE_SIZE);
+    //     for (uint32_t pti = 0; pti < 1024; pti++) {
+    //         if (pt[pti] & PTE_PRESENT) {
+    //             pmm_free_page(pt[pti] & 0xFFFFF000);
+    //             pt[pti] = 0;
+    //         }
+    //     }
+    //     // Free page table itself
+    //     pmm_free_page(pd_virt[pdi] & 0xFFFFF000);
+    //     pd_virt[pdi] = 0;
+    // }
+
+    // // Switch back to callers addr before freeing the PD page
+    // vmm_switch_address_space(saved_pd);
+
+    // All of the above causes a huge page fault so need to work on it
     pmm_free_page(pd_phys);
 }
 

@@ -180,6 +180,8 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     task->is_user = false;
     task->page_directory = pd;
     task->wake_tick = 0;
+    task->parent = NULL;
+    task->exit_code = 0;
 
     uint32_t* sp = (uint32_t*)((uint8_t*)stack + TASK_STACK_SIZE);
 
@@ -274,6 +276,8 @@ task_t* task_create_user(const char* name, const void* user_payload, uint32_t pa
     task->user_stack_top = USER_STACK_TOP;
     task->page_directory = pd_phys;
     task->wake_tick = 0;
+    task->parent = NULL;
+    task->exit_code = 0;
 
     // Build kernel stack
     extern void user_mode_enter(void);
@@ -370,6 +374,8 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     task->user_stack_top = USER_STACK_TOP;
     task->page_directory = pd_phys;
     task->wake_tick = 0;
+    task->parent = NULL;
+    task->exit_code = 0;
 
     extern void user_mode_enter(void);
     uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
@@ -423,10 +429,20 @@ void task_yield(void) {
     task_switch(&prev->esp, next->esp);
 }
 
-void task_exit(void) {
-    printf("Task '%s' (id=%d) exiting\n", current_task->name, current_task->id);
+void task_exit(int code) {
+    printf("Task '%s' (id=%d) exiting with code %d\n", current_task->name, current_task->id, code);
 
+    scheduler_disable_preemption();
+
+    current_task->exit_code = code;
     current_task->state = TASK_TERMINATED;
+
+    // If a parent is blocked then wake it up
+    if (current_task->parent && current_task->parent->state == TASK_BLOCKED) {
+        current_task->parent->state = TASK_READY;
+    }
+
+    scheduler_enable_preemption();
 
     task_yield();
 
@@ -540,6 +556,7 @@ task_t* task_fork(struct registers* parent_regs) {
     child->page_directory = pd_phys;
     child->wake_tick = 0;
     child->esp = (uint32_t)sp;
+    child->parent = parent;
 
     /* Link into the task list. */
     child->next = current_task->next;
@@ -549,3 +566,76 @@ task_t* task_fork(struct registers* parent_regs) {
     return child;
 }
 
+// new task_wait:
+// Wait for a child to terminate, reap it, and return its PID.
+
+int32_t task_wait(int* status_user) {
+    task_t* self = current_task;
+
+    for (;;) {
+        scheduler_disable_preemption();
+
+        // Scan for children
+        task_t* terminated_child = NULL;
+        bool have_children = false;
+
+        task_t* t = task_list;
+        do {
+            if (t->parent == self) {
+                have_children = true;
+                if (t->state == TASK_TERMINATED) {
+                    terminated_child = t;
+                    break;
+                }
+            }
+            t = t->next;
+        } while (t != task_list);
+
+        if (!have_children) {
+            // There is nothing to wait for so return -1;
+            scheduler_enable_preemption();
+            return -1;
+        }
+
+        if (terminated_child) {
+            // Reap
+            int32_t pid = (int32_t)terminated_child->id;
+            int code = terminated_child->exit_code;
+
+            // Unlink from circle
+            task_t* prev = terminated_child;
+            while (prev->next != terminated_child) {
+                prev = prev->next;
+            }
+            prev->next = terminated_child->next;
+
+            // If child was somehow the head then move it
+            if (task_list == terminated_child) {
+                task_list = terminated_child->next;
+            }
+
+            uint32_t child_pd = terminated_child->page_directory;
+            uint32_t child_kstack = terminated_child->stack_base;
+
+            
+            // Free childs resources
+            vmm_destroy_address_space(child_pd);
+            kfree((void*)child_kstack);
+            kfree(terminated_child);
+            scheduler_enable_preemption();
+
+            if (status_user) {
+                if ((uint32_t)status_user < 0xC0000000) {
+                    *status_user = code;
+                }
+            }
+
+            return pid;
+        }
+
+        // block and yield
+        self->state = TASK_BLOCKED;
+        scheduler_enable_preemption();
+        task_yield();
+    }
+}
