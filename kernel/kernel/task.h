@@ -4,12 +4,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../arch/i386/isr.h"
+#include "vfs.h"
 
 #define PRIORITY_IDLE   0
 #define PRIORITY_LOW    1
 #define PRIORITY_NORMAL 5
 #define PRIORITY_HIGH   8
 #define PRIORITY_RT     10
+#define MAX_FDS         16
 
 typedef enum {
     TASK_RUNNING,
@@ -18,6 +20,12 @@ typedef enum {
     TASK_SLEEPING,
     TASK_TERMINATED
 } task_state_t;
+
+struct file {
+    vfs_node_t* node;
+    uint32_t offset;
+    bool used;
+};
 
 typedef struct task {
     uint32_t id; // Unique id
@@ -35,6 +43,7 @@ typedef struct task {
     struct task* next; // Linked list of tasks
     struct task* parent; // Forking parent, NULL if none
     int exit_code; // Exit
+    struct file fd_table[MAX_FDS];
 } task_t;
 
 void scheduler_init(void); // Initialize the scheduler
@@ -51,5 +60,7 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
 task_t* task_fork(struct registers* parent_regs);
 void task_exit(int code);
 int32_t task_wait(int* status_user);
+void fd_table_init(task_t* task);
+int fd_alloc(task_t* task, vfs_node_t* node);
 
 #endif

@@ -4,6 +4,7 @@
 #include "vmm.h"
 #include "elf.h"
 #include "vfs.h"
+#include "console.h"
 #include "../arch/i386/isr.h"
 #include "../arch/i386/tss.h"
 #include <stdio.h>
@@ -138,7 +139,7 @@ void scheduler_init(void) {
     main->stack_base = 0;
     main->wake_tick = 0;
     main->next = main;
-
+    fd_table_init(main);
     current_task = main;
     task_list = main;
 
@@ -197,6 +198,7 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
 
     task->next = current_task->next;
     current_task->next = task;
+    fd_table_init(task);
 
     scheduler_enable_preemption();
 
@@ -297,6 +299,7 @@ task_t* task_create_user(const char* name, const void* user_payload, uint32_t pa
     // Link into task list
     task->next = current_task->next;
     current_task->next = task;
+    fd_table_init(task);
 
     scheduler_enable_preemption();
 
@@ -563,7 +566,7 @@ task_t* task_fork(struct registers* parent_regs) {
     /* Link into the task list. */
     child->next = current_task->next;
     current_task->next = child;
-
+    fd_table_init(child);
     scheduler_enable_preemption();
     return child;
 }
@@ -641,4 +644,33 @@ int32_t task_wait(int* status_user) {
         scheduler_enable_preemption();
         task_yield();
     }
+}
+
+void fd_table_init(task_t* task) {
+    for (int i = 0; i < MAX_FDS; i++) {
+        task->fd_table[i].node = NULL;
+        task->fd_table[i].offset = 0;
+        task->fd_table[i].used = false;
+    }
+
+    // standard streams
+    task->fd_table[0].node = &keyboard_node;
+    task->fd_table[0].used = true;
+    task->fd_table[1].node = &console_node;
+    task->fd_table[1].used = true;
+    task->fd_table[2].node = &console_node;
+    task->fd_table[2].used = true;
+}
+
+// Find lowest free file descriptor
+int fd_alloc(task_t* task, vfs_node_t* node) {
+    for (int i = 3; i < MAX_FDS; i++) {
+        if (!task->fd_table[1].used) {
+            task->fd_table[i].node = node;
+            task->fd_table[i].offset = 0;
+            task->fd_table[i].used = true;
+            return i;
+        }
+    }
+    return -1;
 }

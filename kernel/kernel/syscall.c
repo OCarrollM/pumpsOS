@@ -11,6 +11,8 @@
 #define KERNEL_BASE 0xC0000000
 #define USER_STACK_BASE 0x00500000
 #define USER_STACK_TOP (USER_STACK_BASE + 4096)
+#define SYS_READ 5
+#define SYS_OPEN 6
 
 typedef int32_t (*syscall_fn_t)(struct registers* regs);
 
@@ -124,12 +126,53 @@ static int32_t sys_execve(struct registers* regs) {
     return 0;
 }
 
+static int32_t sys_open(struct registers* regs) {
+    uint32_t path_user = regs->ebx;
+
+    if (path_user >= KERNEL_BASE) return -1;
+
+    // copy path into kernel buffer
+    char path[128];
+    const char* p = (const char*)path_user;
+    size_t i = 0;
+    while (i < sizeof(path) - 1) {
+        char c = p[i];
+        path[i++] = c;
+        if (c == '\0') break;
+    }
+    path[sizeof(path) - 1] = '\0';
+
+    vfs_node_t* node = vfs_lookup(path);
+    if (!node) return -1;
+
+    return fd_alloc(task_current(), node);
+}
+
+static int32_t sys_read(struct registers* regs) {
+    uint32_t fd = regs->ebx;
+    uint32_t buf = regs->ecx;
+    uint32_t len = regs->edx;
+
+    if (fd >= MAX_FDS) return -1;
+    if (buf >= KERNEL_BASE || len > KERNEL_BASE - buf) return -1;
+
+    task_t* self = task_current();
+    struct file* f = &self->fd_table[fd];
+    if (!f->used || !f->node) return -1;
+
+    uint32_t n = vfs_read(f->node, f->offset, len, (uint8_t*)buf);
+    f->offset += n;
+    return (int32_t)n;
+}
+
 static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_EXIT] = sys_exit,
     [SYS_WRITE] = sys_write,
     [SYS_FORK] = sys_fork,
     [SYS_EXECVE] = sys_execve,
     [SYS_WAIT] = sys_wait,
+    [SYS_READ] = sys_read,
+    [SYS_OPEN] = sys_open,
 };
 
 void syscall_dispatch(struct registers* regs) {
@@ -147,3 +190,4 @@ void syscall_init(void) {
     isr_register_handler(128, syscall_dispatch);
     printf("Syscall layer init (int 0x80)\n");
 }
+

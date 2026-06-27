@@ -41,6 +41,7 @@ kernel/vfs.o \
 kernel/initrd.o \
 kernel/syscall.o \
 kernel/elf.o \
+kernel/console.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

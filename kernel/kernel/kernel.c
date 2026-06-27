@@ -20,6 +20,7 @@
 #include "../kernel/initrd.h"
 #include "../kernel/syscall.h"
 #include "../kernel/elf.h"
+#include "../kernel/console.h"
 
 // For ring 3
 static const uint8_t user_payload[] = {
@@ -68,6 +69,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     pic_init();
     timer_init(100);
     keyboard_init();
+    console_init();
     asm volatile("sti");
 
     // Scheduler and tasks
@@ -87,7 +89,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
     task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
     //task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
     //task_create_user_elf("fork_test", "/fork_test.elf", PRIORITY_NORMAL);
-    task_create_user_elf("wait_test", "/wait_test.elf", PRIORITY_NORMAL);
+    //task_create_user_elf("wait_test", "/wait_test.elf", PRIORITY_NORMAL);
+    task_create_user_elf("read_test", "/read_test.elf", PRIORITY_NORMAL);
     scheduler_enable_preemption();
 
     printf("> ");
