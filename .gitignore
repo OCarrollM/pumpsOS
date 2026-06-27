@@ -64,3 +64,4 @@ dkms.conf
 isodir
 sysroot.DS_Store
 **/.DS_Store
+*.log
