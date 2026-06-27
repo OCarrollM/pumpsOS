@@ -1,5 +1,6 @@
 #include "vmm.h"
 #include "pmm.h"
+#include "task.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -198,34 +199,60 @@ void vmm_switch_address_space(uint32_t pd_phys) {
 }
 
 void vmm_destroy_address_space(uint32_t pd_phys) {
-    // uint32_t saved_pd = vmm_get_current_address_space();
+   // Free every user page, table, and pd itself
+   scheduler_disable_preemption();
 
-    // // Switch addr to be safe
-    // vmm_switch_address_space(pd_phys);
+   uint32_t scratch = 0xE0000000;
 
-    // uint32_t* pd_virt = (uint32_t*)PAGE_DIR_VIRTUAL;
+   // map the dead pd itself to read the entries
+    if (!vmm_map_page(scratch, pd_phys, PTE_PRESENT | PTE_WRITABLE)) {
+        scheduler_enable_preemption();
+        pmm_free_page(pd_phys);
+        return;
+    }
+    uint32_t* pd = (uint32_t*)scratch;
 
-    // // Free only user half
-    // for (uint32_t pdi = 0; pdi < 768; pdi++) {
-    //     if (!(pd_virt[pdi] & PTE_PRESENT)) continue;
+    // Snapshot the user hald before starting
+    // need to read all entries into a small array
+    for (uint32_t pdi = 0; pdi < 768; pdi++) {
+        uint32_t pde = pd[pdi];
+        if (!(pde & PTE_PRESENT)) continue;
 
-    //     uint32_t* pt = (uint32_t*)(PAGE_TABLE_BASE + pdi + PAGE_SIZE);
-    //     for (uint32_t pti = 0; pti < 1024; pti++) {
-    //         if (pt[pti] & PTE_PRESENT) {
-    //             pmm_free_page(pt[pti] & 0xFFFFF000);
-    //             pt[pti] = 0;
-    //         }
-    //     }
-    //     // Free page table itself
-    //     pmm_free_page(pd_virt[pdi] & 0xFFFFF000);
-    //     pd_virt[pdi] = 0;
-    // }
+        uint32_t pt_phys = pde & 0xFFFFF000;
 
-    // // Switch back to callers addr before freeing the PD page
-    // vmm_switch_address_space(saved_pd);
+        // Remap scratch slot onto this page table
+        vmm_unmap_page(scratch);
+        if (!vmm_map_page(scratch, pt_phys, PTE_PRESENT | PTE_WRITABLE)) {
+            vmm_map_page(scratch, pd_phys, PTE_PRESENT | PTE_WRITABLE);
+            continue;
+        }
+        uint32_t* pt = (uint32_t*)scratch;
 
-    // All of the above causes a huge page fault so need to work on it
+        // Free every present user page
+        for (uint32_t pti = 0; pti < 1024; pti++) {
+            if (pt[pti] & PTE_PRESENT) {
+                pmm_free_page(pt[pti] & 0xFFFFF000);
+            }
+        }
+
+        // Free physical page
+        vmm_unmap_page(scratch);
+        pmm_free_page(pt_phys);
+
+        // Remap pd for outer look
+        if (!vmm_map_page(scratch, pd_phys, PTE_PRESENT | PTE_WRITABLE)) {
+            pmm_free_page(pd_phys);
+            scheduler_enable_preemption();
+            return;
+        }
+        pd = (uint32_t*)scratch;
+    }
+
+    // unmap scratch slot outside loop
+    vmm_unmap_page(scratch);
     pmm_free_page(pd_phys);
+
+    scheduler_enable_preemption();
 }
 
 uint32_t vmm_get_current_address_space(void) {

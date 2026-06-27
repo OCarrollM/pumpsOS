@@ -68,7 +68,7 @@
         - [x] System Calls
         - [ ] OS Specific Toolchain
         - [ ] Creating a C Library
-        - [ ] Fork and Execute
+        - [x] Fork and Execute
         - [ ] Shell
     - [ ] Phase 3: Expanding
         - [ ] Time
