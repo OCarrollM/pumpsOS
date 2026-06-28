@@ -3,6 +3,7 @@
 #include "pic.h"
 #include "isr.h"
 #include "ports.h"
+#include "../../kernel/task.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -242,6 +243,8 @@ static char input_buffer[INPUT_BUFFER_SIZE];
 static volatile int buffer_head = 0;
 static volatile int buffer_tail = 0;
 
+static volatile task_t* keyboard_waiter = NULL;
+
 static bool is_letter_key(keycode_t key) {
     switch (key) {
         case KEY_A: case KEY_B: case KEY_C: case KEY_D: case KEY_E:
@@ -347,10 +350,20 @@ static void keyboard_irq_handler(struct registers* regs) {
         char ascii = keycode_to_ascii(keycode);
         if(ascii != 0) {
             buffer_put(ascii);
+            printf("[KBD] buffered '%c', waiter=%x\n", ascii, (uint32_t)keyboard_waiter);
+            // Wake a task blocked in a keyboard read if there is any
+            if (keyboard_waiter != NULL) {
+                task_wake((task_t*)keyboard_waiter);
+                keyboard_waiter = NULL;
+            }
         }
     }
 
     pic_send_eoi(IRQ_KEYBOARD);
+}
+
+void keyboard_set_waiter(task_t* t) {
+    keyboard_waiter = t;
 }
 
 void keyboard_init(void) {

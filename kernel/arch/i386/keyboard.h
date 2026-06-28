@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../../kernel/task.h"
 
 // keycodes, this is a long one
 typedef enum {
@@ -98,5 +99,6 @@ bool keyboard_crtl_pressed(void);
 bool keyboard_alt_pressed(void);
 bool keyboard_capslock_active(void);
 void keyboard_readline(char* buffer, int max_length);
+void keyboard_set_waiter(task_t* t);
 
 #endif

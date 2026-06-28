@@ -380,6 +380,8 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     task->parent = NULL;
     task->exit_code = 0;
 
+    fd_table_init(task);
+
     extern void user_mode_enter(void);
     uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
 
@@ -673,4 +675,11 @@ int fd_alloc(task_t* task, vfs_node_t* node) {
         }
     }
     return -1;
+}
+
+// task wake, a small helper function to wake a blocked task making it available again
+void task_wake(task_t* task) {
+    if (task && task->state == TASK_BLOCKED) {
+        task->state = TASK_READY;
+    }
 }

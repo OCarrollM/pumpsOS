@@ -86,24 +86,25 @@ void kernel_main(uint32_t multiboot_info_phys) {
         printf("validate readme.txt: %d (expect 0)\n", elf_validate(&hdr));
     }
 
-    task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
+    //task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
     //task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
     //task_create_user_elf("fork_test", "/fork_test.elf", PRIORITY_NORMAL);
     //task_create_user_elf("wait_test", "/wait_test.elf", PRIORITY_NORMAL);
-    task_create_user_elf("read_test", "/read_test.elf", PRIORITY_NORMAL);
+    //task_create_user_elf("read_test", "/read_test.elf", PRIORITY_NORMAL);
+    task_create_user_elf("echo_test", "/echo_test.elf", PRIORITY_NORMAL);
     scheduler_enable_preemption();
 
-    printf("> ");
-    while(1) {
-        char c = keyboard_getchar();
-        if(c == '\n') {
-            printf("\n> ");
-        } else if(c == '\b') {
-            printf("\b \b");
-        } else {
-            printf("%c", c);
-        }
-    }
+    // printf("> ");
+    // while(1) {
+    //     char c = keyboard_getchar();
+    //     if(c == '\n') {
+    //         printf("\n> ");
+    //     } else if(c == '\b') {
+    //         printf("\b \b");
+    //     } else {
+    //         printf("%c", c);
+    //     }
+    // }
     while(1) {
         asm volatile("hlt");
     }

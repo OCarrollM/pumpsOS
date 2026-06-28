@@ -2,6 +2,7 @@
 #include <kernel/tty.h>
 #include "../arch/i386/keyboard.h"
 #include <string.h>
+#include "task.h"
 
 vfs_node_t console_node;
 vfs_node_t keyboard_node;
@@ -27,15 +28,33 @@ static uint32_t console_read(vfs_node_t* node, uint32_t offset, uint32_t size, u
 // Keyboard read: get all chars without blocking
 // Blocking will come later on
 static uint32_t keyboard_read(vfs_node_t* node, uint32_t offset, uint32_t size, uint8_t* buffer) {
+    printf("[KBD] keyboard_read called, size=%d\n", size);
     (void)node;
     (void)offset;
+    if (size == 0) return 0;
     uint32_t n = 0;
     while (n < size) {
+        asm volatile("cli"); // auto check buffer
         char c = keyboard_getchar_nonblock();
-        if (c == 0) {
+        if (c != 0) {
+            asm volatile("sti"); // we get a char so enable and store
+            buffer[n++] = (uint8_t)c;
+
+            char more; // lets get some more if possible
+            while (n < size && (more = keyboard_getchar_nonblock()) != 0) {
+                buffer[n++] = (uint8_t)more;
+            }
             break;
         }
-        buffer[n++] = (uint8_t)c;
+        
+        // register and block if buffer empty
+        task_t* self = task_current();
+        keyboard_set_waiter(self);
+        printf("[KBD] task '%s' registered as waiter, blocking\n", self->name);
+        self->state = TASK_BLOCKED;
+
+        asm volatile("sti");
+        task_yield();
     }
     return n;
 }

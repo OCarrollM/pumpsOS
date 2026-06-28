@@ -153,11 +153,14 @@ static int32_t sys_read(struct registers* regs) {
     uint32_t buf = regs->ecx;
     uint32_t len = regs->edx;
 
+    //printf("[SYS_READ] fd=%d buf=0x%x len=%d\n", fd, buf, len);
+
     if (fd >= MAX_FDS) return -1;
     if (buf >= KERNEL_BASE || len > KERNEL_BASE - buf) return -1;
 
     task_t* self = task_current();
     struct file* f = &self->fd_table[fd];
+    //printf("[SYS_READ] node=0x%x used=%d\n", (uint32_t)f->node, f->used);
     if (!f->used || !f->node) return -1;
 
     uint32_t n = vfs_read(f->node, f->offset, len, (uint8_t*)buf);
