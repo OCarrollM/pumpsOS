@@ -667,7 +667,7 @@ void fd_table_init(task_t* task) {
 // Find lowest free file descriptor
 int fd_alloc(task_t* task, vfs_node_t* node) {
     for (int i = 3; i < MAX_FDS; i++) {
-        if (!task->fd_table[1].used) {
+        if (!task->fd_table[i].used) {
             task->fd_table[i].node = node;
             task->fd_table[i].offset = 0;
             task->fd_table[i].used = true;

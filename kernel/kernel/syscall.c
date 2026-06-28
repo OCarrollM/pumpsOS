@@ -56,7 +56,7 @@ static int32_t sys_fork(struct registers* regs) {
 
 static int32_t sys_execve(struct registers* regs) {
     uint32_t path_user = regs->ebx;
-    uint32_t argv_user = regs->ecs;
+    uint32_t argv_user = regs->ecx;
     if (path_user >= KERNEL_BASE) return -1;
 
     // copy path
@@ -84,7 +84,7 @@ static int32_t sys_execve(struct registers* regs) {
         char** uargv = (char**)argv_user;
 
         while (argc < MAX_ARGS && uargv[argc] != 0) {
-            const char* uster = uargv[argc];
+            const char* ustr = uargv[argc];
             if ((uint32_t)ustr >= KERNEL_BASE) return -1;
 
             arg_off[argc] = argbuf_used;
@@ -160,7 +160,7 @@ static int32_t sys_execve(struct registers* regs) {
     uint32_t argv_array = sp;
     uint32_t* uargv_arr = (uint32_t*)sp;
     for (int a = 0; a < argc; a++) {
-        uargv[a] = arg_uaddr[a];
+        uargv_arr[a] = arg_uaddr[a];
     }
     uargv_arr[argc] = 0;
 
@@ -182,7 +182,8 @@ static int32_t sys_execve(struct registers* regs) {
     regs->eax = regs->ebx = regs->ecx = regs->edx = 0;
     regs->esi = regs->edi = regs->ebp = 0;
 
-    printf("Task '%s' -> %s (entry=0x%x)\n", self->name, path, entry);
+    printf("Task '%s' -> %s (argc=%d, entry=0x%x)\n",
+           self->name, path, argc, entry);
     return 0;
 }
 
@@ -202,10 +203,14 @@ static int32_t sys_open(struct registers* regs) {
     }
     path[sizeof(path) - 1] = '\0';
 
+    printf("[OPEN] looking up '%s' (len check)\n", path);
     vfs_node_t* node = vfs_lookup(path);
+    printf("[OPEN] vfs_lookup -> %x\n", (uint32_t)node);
     if (!node) return -1;
 
-    return fd_alloc(task_current(), node);
+    int fd = fd_alloc(task_current(), node);
+    printf("[OPEN] fd_alloc -> %d\n", fd);
+    return fd;
 }
 
 static int32_t sys_close(struct registers* regs) {

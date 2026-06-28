@@ -1,3 +1,5 @@
+#define MAX_ARGS 16
+
 static int sys_write(int fd, const char* buf, int len) {
     int r;
     __asm__ volatile("int $0x80" : "=a"(r)
@@ -15,9 +17,10 @@ static int sys_fork(void) {
     __asm__ volatile("int $0x80" : "=a"(r) : "a"(2) : "memory");
     return r;
 }
-static int sys_execve(const char* path) {
+static int sys_execve(const char* path, char* const argv[]) {
     int r;
-    __asm__ volatile("int $0x80" : "=a"(r) : "a"(3), "b"(path) : "memory");
+    __asm__ volatile("int $0x80" : "=a"(r)
+        : "a"(3), "b"(path), "c"(argv) : "memory");
     return r;
 }
 static int sys_wait(int* status) {
