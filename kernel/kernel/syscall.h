@@ -11,6 +11,7 @@
 #define SYS_WAIT 4
 #define SYS_READ 5
 #define SYS_OPEN 6
+#define SYS_CLOSE 7
 #define SYSCALL_MAX 8
 
 void syscall_dispatch(struct registers* regs);

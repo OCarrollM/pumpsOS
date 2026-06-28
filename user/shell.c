@@ -112,6 +112,20 @@ static int run_builtin(const char* cmd) {
     return 0;       /* not a built-in */
 }
 
+static int tokenize(char* line, char** argv, int max) {
+    int argc = 0;
+    char* p = line;
+    while (*p && argc < max - 1) {
+        while (*p == ' ') p++;
+        if (*p == '\0') break;
+        argv[argc++] = p;
+        while (*p && *p != ' ') p++;
+        if (*p == ' ') *p++ = '\0';
+    }
+    argv[argc] = 0;
+    return argc;
+}
+
 /* ---- main loop ---- */
 
 void _start(void) {
@@ -126,26 +140,25 @@ void _start(void) {
         int len = read_line(line, sizeof(line));
         if (len == 0) continue;          /* empty line */
 
+        char* argv[MAX_ARGS];
+        int argc = tokenize(line, argv, MAX_ARGS);
+        if (argc == 0) continue;
         if (run_builtin(line)) continue; /* exit/help handled */
 
-        /* External command: fork, child execs /<cmd>.elf, parent waits. */
-        build_path(line, path, sizeof(path));
+        /* Built-ins check argv[0]. */
+        if (seq(argv[0], "exit")) { puts_("bye\n"); sys_exit(0); }
+        if (seq(argv[0], "help")) { /* ... help text ... */ continue; }
+
+        /* External: build /<argv[0]>.elf, fork, exec with argv. */
+        build_path(argv[0], path, sizeof(path));
 
         int pid = sys_fork();
-        if (pid < 0) {
-            puts_("fork failed\n");
-            continue;
-        }
+        if (pid < 0) { puts_("fork failed\n"); continue; }
         if (pid == 0) {
-            /* child */
-            sys_execve(path);
-            /* execve only returns on failure */
-            puts_("command not found: ");
-            puts_(line);
-            puts_("\n");
+            sys_execve(path, argv);     /* now passes argv */
+            puts_("command not found: "); puts_(argv[0]); puts_("\n");
             sys_exit(1);
         } else {
-            /* parent: wait for the child to finish */
             int status = 0;
             sys_wait(&status);
         }

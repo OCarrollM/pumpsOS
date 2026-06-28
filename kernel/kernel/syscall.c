@@ -250,6 +250,7 @@ static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_WAIT] = sys_wait,
     [SYS_READ] = sys_read,
     [SYS_OPEN] = sys_open,
+    [SYS_CLOSE] = sys_close,
 };
 
 void syscall_dispatch(struct registers* regs) {
