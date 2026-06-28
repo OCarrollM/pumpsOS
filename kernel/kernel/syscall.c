@@ -13,6 +13,8 @@
 #define USER_STACK_TOP (USER_STACK_BASE + 4096)
 #define SYS_READ 5
 #define SYS_OPEN 6
+#define MAX_ARGS 16
+#define ARG_BUF_SIZE 1024
 
 typedef int32_t (*syscall_fn_t)(struct registers* regs);
 
@@ -53,19 +55,48 @@ static int32_t sys_fork(struct registers* regs) {
 
 static int32_t sys_execve(struct registers* regs) {
     uint32_t path_user = regs->ebx;
+    uint32_t argv_user = regs->ecs;
     if (path_user >= KERNEL_BASE) return -1;
 
     // copy path
     char path[128];
-    const char* p = (const char*)path_user;
-    size_t i = 0;
-    while (i < sizeof(path) - 1) {
-        char c = p[i];
-        path[i++] = c;
-        if (c == '\0') break;
+    {
+        const char* p = (const char*)path_user;
+        size_t i = 0;
+        while (i < sizeof(path) - 1) {
+            char c = p[i];
+            path[i++] = c;
+            if (c == '\0') break;
+        }
+
+        path[sizeof(path) - 1] = '\0';
     }
 
-    path[sizeof(path) - 1] = '\0';
+    // Copy argc into kernel memory before teardown
+    int argc = 0;
+    char argbuf[ARG_BUF_SIZE];
+    uint32_t arg_off[MAX_ARGS];
+    uint32_t argbuf_used = 0;
+
+    if (argv_user != 0) {
+        if (argv_user >= KERNEL_BASE) return -1;
+        char** uargv = (char**)argv_user;
+
+        while (argc < MAX_ARGS && uargv[argc] != 0) {
+            const char* uster = uargv[argc];
+            if ((uint32_t)ustr >= KERNEL_BASE) return -1;
+
+            arg_off[argc] = argbuf_used;
+            // copy string into argbuf
+            size_t k = 0;
+            while (argbuf_used < ARG_BUF_SIZE - 1) {
+                char c = ustr[k++];
+                argbuf[argbuf_used++] = c;
+                if (c == '\0') break;
+            }
+            argc++;
+        }
+    }
 
     vfs_node_t* node = vfs_lookup(path);
     if (!node) {
@@ -108,6 +139,34 @@ static int32_t sys_execve(struct registers* regs) {
         task_exit(-1);
         return -1;
     }
+
+    uint32_t sp = USER_STACK_TOP;
+
+    uint32_t arg_uaddr[MAX_ARGS];
+    for (int a = argc - 1; a >= 0; a--) {
+        const char* s = &argbuf[arg_off[a]];
+        size_t slen = 0;
+        while (s[slen]) slen++;
+        slen++;
+        sp -= slen;
+        memcpy((void*)sp, s, slen);
+        arg_uaddr[a] = sp;
+    }
+
+    sp &= ~0x3u;
+
+    sp -= (argc + 1) * sizeof(uint32_t);
+    uint32_t argv_array = sp;
+    uint32_t* uargv_arr = (uint32_t*)sp;
+    for (int a = 0; a < argc; a++) {
+        uargv[a] = arg_uaddr[a];
+    }
+    uargv_arr[argc] = 0;
+
+    sp -= sizeof(uint32_t);
+    *(uint32_t*)sp = argv_array;
+    sp -= sizeof(uint32_t);
+    *(uint32_t*)sp = (uint32_t)argc;
 
     self->user_entry = entry;
     self->user_stack_top = USER_STACK_TOP;
