@@ -489,7 +489,7 @@ void scheduler_print_tasks(void) {
 // kernel stack, addr, and own ISR frame. will return task_t on success NULL if not
 task_t* task_fork(struct registers* parent_regs) {
     // Finding out how many free pages i have
-    printf("[MEM] Free pages before fork: %d\n", pmm_get_free_page_count());
+
     scheduler_disable_preemption();
     task_t* parent = current_task;
 
@@ -629,7 +629,7 @@ int32_t task_wait(int* status_user) {
             vmm_destroy_address_space(child_pd);
             kfree((void*)child_kstack);
             kfree(terminated_child);
-            printf("[MEM] free pages after reap: %d\n", pmm_get_free_page_count());
+
             scheduler_enable_preemption();
 
             if (status_user) {

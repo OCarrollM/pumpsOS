@@ -350,7 +350,7 @@ static void keyboard_irq_handler(struct registers* regs) {
         char ascii = keycode_to_ascii(keycode);
         if(ascii != 0) {
             buffer_put(ascii);
-            printf("[KBD] buffered '%c', waiter=%x\n", ascii, (uint32_t)keyboard_waiter);
+
             // Wake a task blocked in a keyboard read if there is any
             if (keyboard_waiter != NULL) {
                 task_wake((task_t*)keyboard_waiter);
