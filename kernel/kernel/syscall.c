@@ -13,6 +13,7 @@
 #define USER_STACK_TOP (USER_STACK_BASE + 4096)
 #define SYS_READ 5
 #define SYS_OPEN 6
+#define SYS_CLOSE 7
 #define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
@@ -36,16 +37,16 @@ static int32_t sys_write(struct registers* regs) {
     uint32_t buf = regs->ecx;
     uint32_t len = regs->edx;
 
-    if (fd != 1 && fd != 2) {
-        return -1;
-    }
+    if (fd >= MAX_FDS) return -1;
+    if (buf >= KERNEL_BASE || len > KERNEL_BASE - buf) return -1;
 
-    if (buf >= KERNEL_BASE || len > KERNEL_BASE - buf) {
-        return -1;
-    }
+    task_t* self = task_current();
+    struct file* f = &self->fd_table[fd];
+    if (!f->used || !f->node) return -1;
 
-    terminal_write((const char*)buf, (size_t)len);
-    return (int32_t)len;
+    uint32_t n = vfs_write(f->node, f->offset, len, (uint8_t*)buf);
+    f->offset += n;
+    return (uint32_t)n;
 }
 
 static int32_t sys_fork(struct registers* regs) {
@@ -173,7 +174,7 @@ static int32_t sys_execve(struct registers* regs) {
 
     // Rewrite the iret
     regs->eip = entry;
-    regs->useresp = USER_STACK_TOP;
+    regs->useresp = sp;
     regs->eflags = 0x202;
     regs->cs = 0x1B;
     regs->ss = 0x23;
@@ -205,6 +206,20 @@ static int32_t sys_open(struct registers* regs) {
     if (!node) return -1;
 
     return fd_alloc(task_current(), node);
+}
+
+static int32_t sys_close(struct registers* regs) {
+    uint32_t fd = regs->ebx;
+    if (fd >= MAX_FDS) return -1;
+
+    task_t* self = task_current();
+    struct file* f = &self->fd_table[fd];
+    if (!f->used) return -1;
+
+    f->node = NULL;
+    f->offset = 0;
+    f->used = false;
+    return 0;
 }
 
 static int32_t sys_read(struct registers* regs) {
