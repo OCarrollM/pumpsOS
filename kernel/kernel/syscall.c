@@ -203,13 +203,10 @@ static int32_t sys_open(struct registers* regs) {
     }
     path[sizeof(path) - 1] = '\0';
 
-    printf("[OPEN] looking up '%s' (len check)\n", path);
     vfs_node_t* node = vfs_lookup(path);
-    printf("[OPEN] vfs_lookup -> %x\n", (uint32_t)node);
     if (!node) return -1;
 
     int fd = fd_alloc(task_current(), node);
-    printf("[OPEN] fd_alloc -> %d\n", fd);
     return fd;
 }
 

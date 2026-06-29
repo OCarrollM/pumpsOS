@@ -116,8 +116,6 @@ uint32_t elf_load(vfs_node_t* node, uint32_t pd_phys) {
         // Safety features
         if (phdr.p_vaddr >= KERNEL_BASE || phdr.p_vaddr + phdr.p_memsz > KERNEL_BASE ||
             phdr.p_filesz > phdr.p_memsz) {
-            printf("[ELF] segment %d has bad layout (vaddr=0x%x memsz=%d filesz=%d)\n",
-                   i, phdr.p_vaddr, phdr.p_memsz, phdr.p_filesz);
             goto fail;
         }
 
@@ -160,12 +158,6 @@ uint32_t elf_load(vfs_node_t* node, uint32_t pd_phys) {
                 goto fail;
             }
         }
-
-        printf("[ELF] segment %d: vaddr=0x%x filesz=%d memsz=%d flags=%c%c%c\n",
-               i, phdr.p_vaddr, phdr.p_filesz, phdr.p_memsz,
-               (phdr.p_flags & PF_R) ? 'r' : '-',
-               (phdr.p_flags & PF_W) ? 'w' : '-',
-               (phdr.p_flags & PF_X) ? 'x' : '-'); // Like if you do ls -lh (-la) on terminal
     }
 
     vmm_switch_address_space(saved_pd);

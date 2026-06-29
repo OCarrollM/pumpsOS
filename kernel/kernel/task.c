@@ -360,6 +360,29 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
         return NULL;
     }
 
+    uint32_t usp = USER_STACK_TOP;
+
+    uint32_t namelen = 0;
+    while (name[namelen] && namelen < 31) namelen++;
+    namelen++;
+    usp -= namelen;
+    memcpy((void*)usp, name, namelen);
+    uint32_t name_uaddr = usp;
+
+    usp &= ~0x3u;
+
+    usp -= 2 * sizeof(uint32_t);
+    uint32_t argv_array = usp;
+    ((uint32_t*)usp)[0] = name_uaddr;
+    ((uint32_t*)usp)[1] = 0;
+
+    usp -= sizeof(uint32_t);
+    *(uint32_t*)usp = argv_array;
+    usp -= sizeof(uint32_t);
+    *(uint32_t*)usp = 1;
+
+    uint32_t user_esp = usp;
+
     vmm_switch_address_space(saved_pd);
 
     scheduler_disable_preemption();
@@ -385,7 +408,7 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     extern void user_mode_enter(void);
     uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
 
-    *(--sp) = USER_STACK_TOP;
+    *(--sp) = user_esp;
     *(--sp) = entry;
     *(--sp) = 0xDEADBEEF;
     *(--sp) = (uint32_t)user_mode_enter;
