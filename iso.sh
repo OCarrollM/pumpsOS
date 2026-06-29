@@ -16,15 +16,11 @@ if [ -d user ]; then
         [ -e "$src" ] || continue
         name=$(basename "$src" .c)
         echo "  $src -> initrd/$name.elf"
-        i686-elf-gcc -ffreestanding -nostdlib -fno-pie \
-            -fno-stack-protector -O2 -Wall -Wextra \
-            --sysroot="$SYSROOT" -isystem "$SYSROOT/usr/include" \
+        i686-pumpsos-gcc -ffreestanding -O2 -Wall -Wextra \
             -c "$src" -o "user/$name.o"
-        i686-elf-gcc -ffreestanding -nostdlib -fno-pie -static \
-            --sysroot="$SYSROOT" \
+        i686-pumpsos-gcc -ffreestanding -O2 -static \
             -T user/user.ld \
-            "$SYSROOT/usr/lib/crt0.o" "user/$name.o" \
-            -L "$SYSROOT/usr/lib" -lc -o "initrd/$name.elf"
+            "user/$name.o" -o "initrd/$name.elf"
     done
 fi
 
