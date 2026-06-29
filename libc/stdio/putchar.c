@@ -7,8 +7,8 @@
 #endif
 
 int putchar(int ic) {
+    char c = (char) ic;
     #if defined(__is_libk)
-        char c = (char) ic;
         terminal_write(&c, sizeof(c));
     #else
         sys_write(1, &c, 1); // user side

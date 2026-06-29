@@ -48,6 +48,7 @@ $(ARCH_HOSTEDOBJS) \
 OBJS=\
 $(FREEOBJS) \
 $(HOSTEDOBJS) \
+$(ARCH_LIBC_ONLY_OBJS) \
 
 LIBK_OBJS=$(FREEOBJS:.o=.libk.o)
 
@@ -57,7 +58,7 @@ BINARIES=libc.a libk.a
 .PHONY: all clean install install-headers install-libs
 .SUFFIXES: .o .libk.o .c .S
 
-all: $(BINARIES)
+all: $(BINARIES) $(ARCH_CRT_OBJS)
 
 libc.a: $(OBJS)
 	$(AR) rcs $@ $(OBJS)
@@ -88,9 +89,10 @@ install-headers:
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
 	cp -Rp include/. $(DESTDIR)$(INCLUDEDIR)/.
 
-install-libs: $(BINARIES)
+install-libs: $(BINARIES) $(ARCH_CRT_OBJS)
 	mkdir -p $(DESTDIR)$(LIBDIR)
 	cp $(BINARIES) $(DESTDIR)$(LIBDIR)
+	cp $(ARCH_CRT_OBJS) $(DESTDIR)$(LIBDIR)
 
 -include $(OBJS:.o=.d)
 -include $(LIBK_OBJS:.o=.d)
