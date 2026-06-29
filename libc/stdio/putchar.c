@@ -2,6 +2,8 @@
 
 #if defined(__is_libk)
 #include <kernel/tty.h>
+#else
+#include <sys/syscall.h>
 #endif
 
 int putchar(int ic) {
@@ -9,7 +11,7 @@ int putchar(int ic) {
         char c = (char) ic;
         terminal_write(&c, sizeof(c));
     #else
-        // TODO: Implement stdio and write the system call
+        sys_write(1, &c, 1); // user side
     #endif
         return ic;
 }

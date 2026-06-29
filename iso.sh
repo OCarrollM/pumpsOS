@@ -18,10 +18,12 @@ if [ -d user ]; then
         echo "  $src -> initrd/$name.elf"
         i686-elf-gcc -ffreestanding -nostdlib -fno-pie \
             -fno-stack-protector -O2 -Wall -Wextra \
+            -I libc/include \
             -c "$src" -o "user/$name.o"
         i686-elf-gcc -ffreestanding -nostdlib -fno-pie -static \
             -T user/user.ld \
-            "user/$name.o" -o "initrd/$name.elf"
+            libc/arch/i386/crt0.o "user/$name.o" \
+            -L libc -lc -o "initrd/$name.elf"
     done
 fi
 

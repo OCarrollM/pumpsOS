@@ -18,5 +18,7 @@ int sys_fork(void);
 int sys_execve(const char* path, char* const argv[]);
 int sys_wait(int* status);
 void sys_exit(int code);
+void exit(int code);
+int main(int, char**);
 
 #endif

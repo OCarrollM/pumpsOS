@@ -46,3 +46,8 @@ void sys_exit(int code) {
     __asm__ volatile("int $0x80" : : "a"(SYS_EXIT), "b"(code) : "memory");
     __builtin_unreachable();
 }
+
+void exit(int code) {
+    sys_exit(code);
+    __builtin_unreachable();
+}
