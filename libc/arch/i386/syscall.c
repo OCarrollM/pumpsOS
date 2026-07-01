@@ -47,6 +47,12 @@ void sys_exit(int code) {
     __builtin_unreachable();
 }
 
+int sys_sleep(int ms) {
+    int r;
+    __asm__ volatile("int $0x80" : "=a"(r) : "a"(SYS_SLEEP), "b"(ms) : "memory");
+    return r;
+}
+
 void exit(int code) {
     sys_exit(code);
     __builtin_unreachable();

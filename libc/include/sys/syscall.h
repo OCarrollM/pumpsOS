@@ -9,6 +9,7 @@
 #define SYS_READ 5
 #define SYS_OPEN 6
 #define SYS_CLOSE 7
+#define SYS_SLEEP 8
 
 int sys_write(int fd, const void* buf, int len);
 int sys_read(int fd, void* buf, int len);
@@ -18,6 +19,7 @@ int sys_fork(void);
 int sys_execve(const char* path, char* const argv[]);
 int sys_wait(int* status);
 void sys_exit(int code);
+int sys_sleep(int ms);
 void exit(int code);
 int main(int, char**);
 
