@@ -706,3 +706,16 @@ void task_wake(task_t* task) {
         task->state = TASK_READY;
     }
 }
+
+// Wake sleeping tasks where the wake tick has been reached
+void task_wake_sleepers(uint64_t now) {
+    if (!task_list) return;
+    task_t* t = task_list;
+    do {
+        if (t->state == TASK_BLOCKED && t->wake_tick != 0 && t->wake_tick <= now) {
+            t->wake_tick = 0;
+            t->state = TASK_READY;
+        }
+        t = t->next;
+    } while (t != task_list);
+}

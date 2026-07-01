@@ -14,10 +14,26 @@
 #define SYS_READ 5
 #define SYS_OPEN 6
 #define SYS_CLOSE 7
+#define SYS_SLEEP 8
 #define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
 typedef int32_t (*syscall_fn_t)(struct registers* regs);
+
+static int32_t sys_sleep(struct registers* regs) {
+    uint32_t ms = regs->ebx;
+    task_t* self = task_current();
+
+    uint64_t now = timer_get_ticks(); // get current tick
+    uint32_t delay_ticks = (ms * 100) / 1000;
+    if (delay_ticks == 0 && ms > 0) delay_ticks = 1;
+
+    self->wake_tick = (uint32_t)(now + delay_ticks);
+    self->state = TASK_BLOCKED;
+
+    task_yield(); // blocks
+    return 0;
+}
 
 static int32_t sys_exit(struct registers* regs) {
 
@@ -253,6 +269,7 @@ static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_READ] = sys_read,
     [SYS_OPEN] = sys_open,
     [SYS_CLOSE] = sys_close,
+    [SYS_SLEEP] = sys_sleep,
 };
 
 void syscall_dispatch(struct registers* regs) {

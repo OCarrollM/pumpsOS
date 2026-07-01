@@ -62,5 +62,6 @@ void task_exit(int code);
 int32_t task_wait(int* status_user);
 void fd_table_init(task_t* task);
 int fd_alloc(task_t* task, vfs_node_t* node);
+void task_wake_sleepers(uint64_t now);
 
 #endif

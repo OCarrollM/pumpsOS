@@ -12,6 +12,8 @@ static void timer_handler(struct registers* regs) {
     (void)regs; // not used
     ticks++;
 
+    task_wake_sleepers(ticks);
+
     pic_send_eoi(IRQ_TIMER);
 
     scheduler_tick();
@@ -43,6 +45,10 @@ void timer_init(uint32_t frequency) {
 
 uint64_t timer_get_ticks(void) {
     return ticks;
+}
+
+uint64_t timer_uptime_ms(void) {
+    return (timer_get_ticks() * 1000) / timer_freq; // Milliseconds
 }
 
 void timer_sleep(uint32_t ms) {

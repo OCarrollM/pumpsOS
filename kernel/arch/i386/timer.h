@@ -13,6 +13,7 @@
 void timer_init(uint32_t frequency);
 
 uint64_t timer_get_ticks(void);
+uint64_t timer_uptime_ms(void);
 
 void timer_sleep(uint32_t ms);
 
