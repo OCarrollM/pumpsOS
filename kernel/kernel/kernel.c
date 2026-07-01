@@ -8,6 +8,8 @@
 #include "../arch/i386/timer.h"
 #include "../arch/i386/keyboard.h"
 #include "../arch/i386/tss.h"
+#include "../arch/i386/rtc.h"
+#include "../arch/i386/ports.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -70,6 +72,9 @@ void kernel_main(uint32_t multiboot_info_phys) {
     timer_init(100);
     keyboard_init();
     console_init();
+    rtc_time_t now;
+    rtc_read(&now);
+    printf("Current time: %d-%02d-%02d %02d:%02d:%02d UTC\n", now.year, now.month, now.day, now.hour, now.minute, now.second);
     asm volatile("sti");
 
     // Scheduler and tasks

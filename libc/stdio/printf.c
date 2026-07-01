@@ -45,11 +45,23 @@ int printf(const char* restrict format, ...) {
 
         const char* format_begun_at = format++;
 
+        // NEW: Parsing optional flags (like %d02)
+
+        bool zero_pad = false;
+        int width = 0;
+        while (*format == '0' || *format == '-') {
+            if (*format == '0') zero_pad = true;
+            format++;
+        }
+        while (*format >= '0' && *format <= '9') {
+            width = width * 10 + (*format - '0');
+            format++;
+        }
+
         if (*format == 'c') {
             format++;
             char c = (char) va_arg(parameters, int /* char promotes to int */);
             if (!maxrem) {
-                // TODO: Set errno to EOVERFLOW
                 return -1;
             }
             if (!print(&c, sizeof(c))) {
@@ -61,7 +73,6 @@ int printf(const char* restrict format, ...) {
             const char* str = va_arg(parameters, const char*);
             size_t len = strlen(str);
             if (maxrem < len) {
-                // TODO: Set errno to EOVERFLOW
                 return -1;
             }
             if (!print(str, len)) {
@@ -71,13 +82,13 @@ int printf(const char* restrict format, ...) {
         } else if (*format == 'd') {
             format++;
             int num = va_arg(parameters, int);
-            if (num < 0) {
-                if (!print("-", 1)) return -1;
-                written++;
-                num = -num;
-            }
             char buf[12];
             int i = 0;
+            bool neg = false;
+            if (num < 0) {
+                neg = true;
+                num = -num;
+            }
             if (num == 0) {
                 buf[i++] = '0';
             } else {
@@ -85,6 +96,17 @@ int printf(const char* restrict format, ...) {
                     buf[i++] = '0' + (num % 10);
                     num /= 10;
                 }
+            }
+            // pad to width
+            int digits = i + (neg ? 1 : 0);
+            if (neg) {
+                if (!print("-", 1)) return -1;
+                written++;
+            }
+            for (int p = digits; p < width; p++) {
+                char pad = zero_pad ? '0' : ' ';
+                if (!print(&pad, 1)) return -1;
+                written++;
             }
             for (int j = i - 1; j >= 0; j--) {
                 if (!print(&buf[j], 1)) return -1;
@@ -112,7 +134,6 @@ int printf(const char* restrict format, ...) {
             format = format_begun_at;
             size_t len = strlen(format);
             if (maxrem < len) {
-                //TODO: Set errno to EOVERFLOW
                 return -1;
             }
             if (!print(format, len)) {
