@@ -6,15 +6,19 @@ This project is all about OS development and will be updated over a period of se
 
 I am following the [OSDev Wiki](https://wiki.osdev.org/) as a means of guidance and learning and as a challenge, restricting the use of AI to reinforce understanding and really put my programming knowledge to the test.
 
+[June 2026] I have taken out a operating systems book from my Universities library to help learn some concepts 
+
 ## Current Status
 
-- 32-Bit OS
-- VGA text mode driver with colour support
-- Terminal scrolling and newline handling
-- Global constructors
-- A seperate kernel and libc (Guided by the Meaty Skeleton Architecture)
-- Kernel runs in the higher half of its memory. Currently allocating
-1 GiB of kernel data and 3Gib for processes (0xC00..). This may change
+- Phase 1 & 2 from the OSDev Wiki complete
+- Terminal has its own shell `PumpsOS>`
+- Fully ported self hosted OS, Binutils & GCC
+
+## Up coming
+
+- Phase 3
+  - Proper file system
+  - An actual user interface (excited) + graphics
 
 ## Building
 As of commit `43dd352` (and presumebly later commits as I would rather commit working builds) it is possible to run this project yourself.

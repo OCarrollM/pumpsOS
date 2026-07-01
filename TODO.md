@@ -66,10 +66,10 @@
         - [x] User-Space
         - [x] Program Loading
         - [x] System Calls
-        - [ ] OS Specific Toolchain
-        - [ ] Creating a C Library
+        - [x] OS Specific Toolchain
+        - [x] Creating a C Library
         - [x] Fork and Execute
-        - [ ] Shell
+        - [x] Shell
     - [ ] Phase 3: Expanding
         - [ ] Time
         - [ ] Threads
