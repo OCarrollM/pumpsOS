@@ -44,6 +44,9 @@ typedef struct task {
     struct task* parent; // Forking parent, NULL if none
     int exit_code; // Exit
     struct file fd_table[MAX_FDS];
+    bool is_thread;
+    void (*thread_entry)(void*);
+    void* thread_arg;
 } task_t;
 
 void scheduler_init(void); // Initialize the scheduler
@@ -63,5 +66,6 @@ int32_t task_wait(int* status_user);
 void fd_table_init(task_t* task);
 int fd_alloc(task_t* task, vfs_node_t* node);
 void task_wake_sleepers(uint64_t now);
+task_t* thread_create(const char* name, void (*entry)(void*), void* arg, uint32_t priority);
 
 #endif

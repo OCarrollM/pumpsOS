@@ -647,9 +647,9 @@ int32_t task_wait(int* status_user) {
             uint32_t child_pd = terminated_child->page_directory;
             uint32_t child_kstack = terminated_child->stack_base;
 
-            
-            // Free childs resources
-            vmm_destroy_address_space(child_pd);
+            if (!terminated_child->is_thread) {
+                vmm_destroy_address_space(child_pd);
+            }
             kfree((void*)child_kstack);
             kfree(terminated_child);
 
@@ -718,4 +718,55 @@ void task_wake_sleepers(uint64_t now) {
         }
         t = t->next;
     } while (t != task_list);
+}
+
+static void thread_trampoline(void) {
+    asm volatile("sti");
+    task_t* self = task_current();
+    self->thread_entry(self->thread_arg);
+    task_exit(0);
+}
+
+task_t* thread_create(const char* name, void (*entry)(void*), void* arg, uint32_t priority) {
+    task_t* task = (task_t*)kmalloc(sizeof(task_t));
+    if (!task) return NULL;
+
+    void* stack = kmalloc(TASK_STACK_SIZE);
+    if (!stack) { kfree(task); return NULL; }
+
+    scheduler_disable_preemption();
+
+    task->id = next_tast_id++;
+    strncpy(task->name, name, 31);
+    task->name[31] = '\0';
+    task->state = TASK_READY;
+    task->priority = priority;
+    task->stack_base = (uint32_t)stack;
+    task->stack_top = (uint32_t)stack + TASK_STACK_SIZE;
+    task->is_user = false;
+
+    // share current kernel addr space instead of making a new one
+    task->page_directory = current_task->page_directory;
+    task->wake_tick = 0;
+    task->parent = NULL;
+    task->exit_code = 0;
+    task->thread_entry = entry;
+    task->thread_arg = arg;
+
+    uint32_t* sp = (uint32_t*)((uint8_t*)stack + TASK_STACK_SIZE);
+    *(--sp) = (uint32_t)thread_trampoline; 
+    *(--sp) = 0;   // ebp 
+    *(--sp) = 0;   // edi 
+    *(--sp) = 0;   // esi 
+    *(--sp) = 0;   // ebx 
+    task->esp = (uint32_t)sp;
+
+    task->next = current_task->next;
+    current_task->next = task;
+    fd_table_init(task);
+
+    scheduler_enable_preemption();
+
+    printf("Created a kernel thread '%s' (id=%d, pd=0x%x [shared])\n", task->name, task->id, task->page_directory);
+    return task;
 }
