@@ -33,13 +33,24 @@ static const uint8_t user_payload[] = {
     0x69, 0x6E, 0x67, 0x20, 0x33, 0x0A,
 };
 
-static void thread_body(void* arg) {
+static void thread_body_forever(void* arg) {
     const char* tag = (const char*)arg;
     int i = 0;
-    for (;;) {                   
+    for (;;) {
         printf("[%s] %d\n", tag, i++);
         for (volatile int d = 0; d < 20000000; d++) { }
     }
+}
+
+/* Finite: returns after 5 iterations -> trampoline calls task_exit(0) */
+static void thread_body_finite(void* arg) {
+    const char* tag = (const char*)arg;
+    for (int i = 0; i < 5; i++) {
+        printf("[%s] %d\n", tag, i);
+        for (volatile int d = 0; d < 20000000; d++) { }
+    }
+    printf("[%s] returning (will exit)\n", tag);
+    /* returns -> thread_trampoline -> task_exit(0) */
 }
 
 void kernel_main(uint32_t multiboot_info_phys) {
@@ -89,8 +100,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
     // Scheduler and tasks
 
     scheduler_init();
-    thread_create("thread-A", thread_body, "AAA", PRIORITY_NORMAL);
-    thread_create("thread-B", thread_body, "BBB", PRIORITY_NORMAL);
+    thread_create("thread-A", thread_body_finite, "AAA", PRIORITY_NORMAL);
+    thread_create("thread-B", thread_body_forever, "BBB", PRIORITY_NORMAL);
     debugger_init();
 
     printf("sizeof(Elf32_Ehdr) = %d (expect 52)\n", sizeof(Elf32_Ehdr));
