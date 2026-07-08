@@ -10,6 +10,8 @@
 #define SYS_OPEN 6
 #define SYS_CLOSE 7
 #define SYS_SLEEP 8
+#define SYS_THREAD_CREATE 9
+#define SYS_THREAD_EXIT 10
 
 int sys_write(int fd, const void* buf, int len);
 int sys_read(int fd, void* buf, int len);
@@ -22,5 +24,7 @@ void sys_exit(int code);
 int sys_sleep(int ms);
 void exit(int code);
 int main(int, char**);
+int sys_thread_create(unsigned int entry, unsigned int arg);
+void sys_thread_exit(void);
 
 #endif

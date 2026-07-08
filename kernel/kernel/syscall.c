@@ -5,6 +5,7 @@
 #include "vmm.h"
 #include "pmm.h"
 #include <kernel/tty.h>
+#include "../arch/i386/timer.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -17,6 +18,7 @@
 #define SYS_SLEEP 8 
 #define SYS_THREAD_CREATE 9
 #define SYS_THREAD_EXIT 10
+#define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
 typedef int32_t (*syscall_fn_t)(struct registers* regs);
@@ -269,73 +271,8 @@ static int32_t sys_read(struct registers* regs) {
 }
 
 static int32_t sys_thread_create(struct registers* regs) {
-    uint32_t entry = regs->ebx;
-    uint32_t arg = regs->ecx;
-
-    task_t* self = task_current();
-    tas_t* t = (task_t*)kmalloc(sizeof(task_t));
-    if (!t) return -1;
-    void* kstack = kmalloc(TASK_STACK_SIZE);
-    if (!kstack) { kfree(t); return -1; }
-
-    // choose this threads user stack
-    next_thread_stack_top -= 0x10000;
-    uint32_t tstack_top = next_thread_stack_top;
-    uint32_t tstack_base = tstack_top - PAGE_SIZE;
-
-    // map new stack into the shared addr space
-    uint32_t stack_phys = pmm_alloc_page();
-    if (stack_phys == 0 || !vmm_map_page(tstack_base, stack_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
-        if (stack_phys) pmm_free_page(stack_phys);
-        kfree(kstack);
-        kfree(t);
-        return -1;
-    }
-
-    // put arg on the new user stack so trampoline can read
-    uint32_t user_esp = tstack_top;
-    user_esp -= sizeof(uint32_t);
-    *(uint32_t*)user_esp = arg;
-
-    user_esp -= sizeof(uint32_t);
-    *(uint32_t*)user_esp = 0;
-
-    scheduler_disable_preemption();
-
-    t->id = next_tast_id++;
-    strncpy(t->name, "thread", 31);
-    t->name[31] = '\0';
-    t->state = TASK_READY;
-    t->priority = self->priority;
-    t->stack_base = (uint32_t)kstack;
-    t->stack_top  = (uint32_t)kstack + TASK_STACK_SIZE;
-    t->is_user   = true;
-    t->is_thread = true;                         
-    t->user_entry = entry;
-    t->user_stack_top = tstack_top;
-    t->page_directory = self->page_directory;     
-    t->wake_tick = 0;
-    t->parent = NULL;
-    t->exit_code = 0;
-
-    fd_table_init(t);
-
-    extern void user_mode_enter(void);
-    uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
-    *(--sp) = user_esp;                  
-    *(--sp) = entry;                   
-    *(--sp) = 0xDEADBEEF;              
-    *(--sp) = (uint32_t)user_mode_enter;
-    *(--sp) = 0; *(--sp) = 0;            
-    *(--sp) = 0; *(--sp) = 0;         
-    t->esp = (uint32_t)sp;
-
-    t->next = current_task->next;
-    current_task->next = t;
-
-    scheduler_enable_preemption();
-
-    return (int32_t)t->id;
+    task_t* t = task_create_user_thread(regs->ebx, regs->ecx);
+    return t ? (int32_t)t->id : -1;
 }
 
 static syscall_fn_t syscall_table[SYSCALL_MAX] = {

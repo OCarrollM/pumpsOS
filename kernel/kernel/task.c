@@ -20,10 +20,11 @@ extern void task_switch(uint32_t* old_esp, uint32_t new_esp);
 
 static task_t* current_task = NULL;
 static task_t* task_list = NULL;
-static uint32_t next_tast_id = 1;
+static uint32_t next_task_id = 1;
 
 static volatile bool preemption_enabled = false;
 static uint32_t preempt_counter = 0;
+static uint32_t next_thread_stack_top = USER_STACK_BASE;
 
 static void scheduler_validate_list(const char* where) {
     if (!task_list) return;
@@ -128,7 +129,7 @@ void scheduler_init(void) {
         return;
     }
 
-    main->id = next_tast_id++;
+    main->id = next_task_id++;
     strncpy(main->name, "kernel_main", 31);
     main->name[31] = '\0';
     main->state = TASK_RUNNING;
@@ -170,7 +171,7 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
 
     scheduler_disable_preemption();
 
-    task->id = next_tast_id++;
+    task->id = next_task_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;
@@ -204,6 +205,73 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     printf("Created task '%s' (id=%d, priority=%d, pd=0x%x)\n", task->name, task->id, task->priority, task->page_directory);
 
     return task;
+}
+
+task_t* task_create_user_thread(uint32_t entry, uint32_t arg) {
+    task_t* self = current_task;
+    task_t* t = (task_t*)kmalloc(sizeof(task_t));
+    if (!t) return NULL;
+    void* kstack = kmalloc(TASK_STACK_SIZE);
+    if (!kstack) { kfree(t); return NULL; }
+
+    // choose this threads user stack
+    next_thread_stack_top -= 0x10000;
+    uint32_t tstack_top = next_thread_stack_top;
+    uint32_t tstack_base = tstack_top - PAGE_SIZE;
+
+    // map new stack into the shared addr space
+    uint32_t stack_phys = pmm_alloc_page();
+    if (stack_phys == 0 || !vmm_map_page(tstack_base, stack_phys, PTE_PRESENT | PTE_WRITABLE | PTE_USER)) {
+        if (stack_phys) pmm_free_page(stack_phys);
+        kfree(kstack);
+        kfree(t);
+        return NULL;
+    }
+
+    // put arg on the new user stack so trampoline can read
+    uint32_t user_esp = tstack_top;
+    user_esp -= sizeof(uint32_t);
+    *(uint32_t*)user_esp = arg;
+
+    user_esp -= sizeof(uint32_t);
+    *(uint32_t*)user_esp = 0;
+
+    scheduler_disable_preemption();
+
+    t->id = next_task_id++;
+    strncpy(t->name, "thread", 31);
+    t->name[31] = '\0';
+    t->state = TASK_READY;
+    t->priority = self->priority;
+    t->stack_base = (uint32_t)kstack;
+    t->stack_top  = (uint32_t)kstack + TASK_STACK_SIZE;
+    t->is_user   = true;
+    t->is_thread = true;                         
+    t->user_entry = entry;
+    t->user_stack_top = tstack_top;
+    t->page_directory = self->page_directory;     
+    t->wake_tick = 0;
+    t->parent = NULL;
+    t->exit_code = 0;
+
+    fd_table_init(t);
+
+    extern void user_mode_enter(void);
+    uint32_t* sp = (uint32_t*)((uint8_t*)kstack + TASK_STACK_SIZE);
+    *(--sp) = user_esp;                  
+    *(--sp) = entry;                   
+    *(--sp) = 0xDEADBEEF;              
+    *(--sp) = (uint32_t)user_mode_enter;
+    *(--sp) = 0; *(--sp) = 0;            
+    *(--sp) = 0; *(--sp) = 0;         
+    t->esp = (uint32_t)sp;
+
+    t->next = current_task->next;
+    current_task->next = t;
+
+    scheduler_enable_preemption();
+
+    return t;
 }
 
 task_t* task_create_user(const char* name, const void* user_payload, uint32_t payload_size, uint32_t priority) {
@@ -265,7 +333,7 @@ task_t* task_create_user(const char* name, const void* user_payload, uint32_t pa
     scheduler_disable_preemption();
 
     // Fill task struct
-    task->id = next_tast_id++;
+    task->id = next_task_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;
@@ -387,7 +455,7 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     scheduler_disable_preemption();
 
     // Fill in the task struct
-    task->id = next_tast_id++;
+    task->id = next_task_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;
@@ -571,7 +639,7 @@ task_t* task_fork(struct registers* parent_regs) {
     *(--sp) = 0;  /* esi */
     *(--sp) = 0;  /* ebx */
 
-    child->id = next_tast_id++;
+    child->id = next_task_id++;
     strncpy(child->name, parent->name, 31);
     child->name[31] = '\0';
 
@@ -735,7 +803,7 @@ task_t* thread_create(const char* name, void (*entry)(void*), void* arg, uint32_
 
     scheduler_disable_preemption();
 
-    task->id = next_tast_id++;
+    task->id = next_task_id++;
     strncpy(task->name, name, 31);
     task->name[31] = '\0';
     task->state = TASK_READY;

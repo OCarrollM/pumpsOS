@@ -100,8 +100,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
     // Scheduler and tasks
 
     scheduler_init();
-    thread_create("thread-A", thread_body_finite, "AAA", PRIORITY_NORMAL);
-    thread_create("thread-B", thread_body_forever, "BBB", PRIORITY_NORMAL);
+    //thread_create("thread-A", thread_body_finite, "AAA", PRIORITY_NORMAL);
+    //thread_create("thread-B", thread_body_forever, "BBB", PRIORITY_NORMAL);
     debugger_init();
 
     printf("sizeof(Elf32_Ehdr) = %d (expect 52)\n", sizeof(Elf32_Ehdr));

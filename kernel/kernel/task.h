@@ -67,5 +67,6 @@ void fd_table_init(task_t* task);
 int fd_alloc(task_t* task, vfs_node_t* node);
 void task_wake_sleepers(uint64_t now);
 task_t* thread_create(const char* name, void (*entry)(void*), void* arg, uint32_t priority);
+task_t* task_create_user_thread(uint32_t entry, uint32_t arg);
 
 #endif
