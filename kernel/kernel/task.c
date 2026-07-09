@@ -142,6 +142,7 @@ void scheduler_init(void) {
     fd_table_init(main);
     current_task = main;
     task_list = main;
+    main->as_refcount = NULL;
 
     //printf("Initialized scheduler, current task: %s (id=%d)\n", main->name, main->id);
 }
@@ -183,6 +184,7 @@ task_t* task_create(const char* name, void (*entry)(void), uint32_t priority) {
     task->wake_tick = 0;
     task->parent = NULL;
     task->exit_code = 0;
+    task->as_refcount = NULL;
 
     uint32_t* sp = (uint32_t*)((uint8_t*)stack + TASK_STACK_SIZE);
 
@@ -249,7 +251,9 @@ task_t* task_create_user_thread(uint32_t entry, uint32_t arg) {
     t->is_thread = true;                         
     t->user_entry = entry;
     t->user_stack_top = tstack_top;
-    t->page_directory = self->page_directory;     
+    t->page_directory = self->page_directory; 
+    t->as_refcount = self->as_refcount;        
+    if (t->as_refcount) (*t->as_refcount)++;   
     t->wake_tick = 0;
     t->parent = NULL;
     t->exit_code = 0;
@@ -466,6 +470,8 @@ task_t* task_create_user_elf(const char* name, const char* path, uint32_t priori
     task->user_entry = entry;
     task->user_stack_top = USER_STACK_TOP;
     task->page_directory = pd_phys;
+    task->as_refcount = (int*)kmalloc(sizeof(int));
+    if (task->as_refcount) *task->as_refcount = 1;
     task->wake_tick = 0;
     task->parent = NULL;
     task->exit_code = 0;
@@ -524,6 +530,37 @@ void task_yield(void) {
     task_switch(&prev->esp, next->esp);
 }
 
+void task_reap_terminated(void) {
+    scheduler_disable_preemption();
+    if (!task_list) { scheduler_enable_preemption(); return; }
+
+    task_t* prev = task_list;
+    task_t* t = task_list->next;
+    int guard = 0;
+
+    while (t != task_list && guard++ < 1024) {
+        if (t->state == TASK_TERMINATED && t->parent == NULL &&
+            t != current_task) {
+            task_t* dead = t;
+            prev->next = dead->next;
+
+            if (dead->as_refcount && *dead->as_refcount == 0) {
+                vmm_destroy_address_space(dead->page_directory);
+                kfree(dead->as_refcount);
+            }
+            kfree((void*)dead->stack_base);
+            kfree(dead);
+
+            t = prev->next;
+            continue;
+        }
+        prev = t;
+        t = t->next;
+    }
+
+    scheduler_enable_preemption();
+}
+
 void task_exit(int code) {
     printf("Task '%s' (id=%d) exiting with code %d\n", current_task->name, current_task->id, code);
 
@@ -533,6 +570,10 @@ void task_exit(int code) {
     current_task->state = TASK_TERMINATED;
 
     // If a parent is blocked then wake it up
+    if (current_task->as_refcount) {
+        (*current_task->as_refcount)--;
+    }
+
     if (current_task->parent && current_task->parent->state == TASK_BLOCKED) {
         current_task->parent->state = TASK_READY;
     }
@@ -651,6 +692,8 @@ task_t* task_fork(struct registers* parent_regs) {
     child->user_entry = parent->user_entry;   /* informational */
     child->user_stack_top = parent->user_stack_top;
     child->page_directory = pd_phys;
+    child->as_refcount = (int*)kmalloc(sizeof(int));
+    if (child->as_refcount) *child->as_refcount = 1;
     child->wake_tick = 0;
     child->esp = (uint32_t)sp;
     child->parent = parent;
@@ -714,8 +757,9 @@ int32_t task_wait(int* status_user) {
             uint32_t child_pd = terminated_child->page_directory;
             uint32_t child_kstack = terminated_child->stack_base;
 
-            if (!terminated_child->is_thread) {
+            if (terminated_child->as_refcount && *terminated_child->as_refcount == 0) {
                 vmm_destroy_address_space(child_pd);
+                kfree(terminated_child->as_refcount);
             }
             kfree((void*)child_kstack);
             kfree(terminated_child);

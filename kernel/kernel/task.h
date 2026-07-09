@@ -47,6 +47,7 @@ typedef struct task {
     bool is_thread;
     void (*thread_entry)(void*);
     void* thread_arg;
+    int* as_refcount;
 } task_t;
 
 void scheduler_init(void); // Initialize the scheduler
@@ -68,5 +69,6 @@ int fd_alloc(task_t* task, vfs_node_t* node);
 void task_wake_sleepers(uint64_t now);
 task_t* thread_create(const char* name, void (*entry)(void*), void* arg, uint32_t priority);
 task_t* task_create_user_thread(uint32_t entry, uint32_t arg);
+void task_reap_terminated(void);
 
 #endif

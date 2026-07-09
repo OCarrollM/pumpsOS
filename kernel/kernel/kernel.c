@@ -134,6 +134,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //     }
     // }
     while(1) {
+        task_reap_terminated();
         asm volatile("hlt");
     }
 }
