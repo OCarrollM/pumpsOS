@@ -10,6 +10,7 @@
 #include "../arch/i386/tss.h"
 #include "../arch/i386/rtc.h"
 #include "../arch/i386/ports.h"
+#include "../arch/i386/ata.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -121,6 +122,17 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //task_create_user_elf("echo_test", "/echo_test.elf", PRIORITY_NORMAL);
     task_create_user_elf("shell", "/shell.elf", PRIORITY_NORMAL);
     scheduler_enable_preemption();
+
+    uint8_t sector[512];
+    if (ata_read_sector(0, sector)) {
+        printf("Sector 0 read OK. First bytes: ");
+        for (int i = 0; i < 20; i++) {
+            printf("%c", sector[i] >= 32 && sector[i] < 127 ? sector[i] : '.');
+        }
+        printf("\n");
+    } else {
+        printf("ATA read FAILED\n");
+    }
 
     // printf("> ");
     // while(1) {
