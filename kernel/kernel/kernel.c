@@ -134,6 +134,26 @@ void kernel_main(uint32_t multiboot_info_phys) {
         printf("ATA read FAILED\n");
     }
 
+    // write test
+    uint8_t wbuf[512];
+    memset(wbuf, 0, 512);
+    const char* msg = "WRITTEN BY PUMPSOS KERNEL";
+    memcpy(wbuf, msg, strlen(msg));
+
+    if (ata_write_sector(1, wbuf)) {
+        printf("Wrote sector 1.\n");
+        uint8_t rbuf[512];
+        if (ata_read_sector(1, rbuf)) {
+            printf("Read back: ");
+            for (int i = 0; i < 25; i++) {
+                printf("%c", rbuf[i] >= 32 && rbuf[i] < 127 ? rbuf[i] : '.');
+            }
+            printf("\n");
+        }
+    } else {
+        printf("ATA write FAILED\n");
+    }
+
     // printf("> ");
     // while(1) {
     //     char c = keyboard_getchar();

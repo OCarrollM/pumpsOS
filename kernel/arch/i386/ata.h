@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 bool ata_read_sector(uint32_t lba, uint8_t* buf); // 512 byte read
+bool ata_write_sector(uint32_t lba, const uint8_t* buf);
 
 #endif
 

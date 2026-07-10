@@ -18,6 +18,8 @@
 #define ATA_SR_ERR 0x81 // error
 
 #define ATA_CMD_READ_PIO 0x20
+#define ATA_CMD_WRITE_PIO 0x30
+#define ATA_CMD_CACHE_FLUSH 0xE7
 
 // wait for the drive to be ready first
 static bool ata_poll(void) {
@@ -54,6 +56,31 @@ bool ata_read_sector(uint32_t lba, uint8_t* buf) {
     uint16_t* words = (uint16_t*)buf;
     for (int i = 0; i < 256; i++) {
         words[i] = inw(ATA_DATA);
+    }
+
+    return true;
+}
+
+bool ata_write_sector(uint32_t lba, const uint8_t* buf) {
+    outb(ATA_DRIVE, 0xE0 | ((lba >> 24) & 0x0F));
+    outb(ATA_SECCOUNT, 1);
+    outb(ATA_LBA_LOW,  (uint8_t)(lba & 0xFF));
+    outb(ATA_LBA_MID,  (uint8_t)((lba >> 8) & 0xFF));
+    outb(ATA_LBA_HIGH, (uint8_t)((lba >> 16) & 0xFF));
+
+    outb(ATA_COMMAND, ATA_CMD_WRITE_PIO);
+
+    if (!ata_poll()) return false;
+
+    const uint16_t* words = (const uint16_t*)buf;
+    for (int i = 0; i < 256; i++) {
+        outw(ATA_DATA, words[i]);
+    }
+
+    outb(ATA_COMMAND, ATA_CMD_CACHE_FLUSH);
+    uint32_t timeout = 100000;
+    while (inb(ATA_STATUS) & ATA_SR_BSY) {
+        if (--timeout == 0) return false;
     }
 
     return true;
