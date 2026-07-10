@@ -71,8 +71,8 @@
         - [x] Fork and Execute
         - [x] Shell
     - [ ] Phase 3: Expanding
-        - [ ] Time
-        - [ ] Threads
+        - [x] Time
+        - [x] Threads
         - [ ] Thread Local Storage
         - [ ] Symmetric MultiProcessing
         - [ ] Secondary Storage
