@@ -24,6 +24,7 @@
 #include "../kernel/syscall.h"
 #include "../kernel/elf.h"
 #include "../kernel/console.h"
+#include "../kernel/pfs.h"
 
 // For ring 3
 static const uint8_t user_payload[] = {
@@ -153,6 +154,9 @@ void kernel_main(uint32_t multiboot_info_phys) {
     } else {
         printf("ATA write FAILED\n");
     }
+
+    pfs_mkfs();
+    pfs_mount();
 
     // printf("> ");
     // while(1) {
