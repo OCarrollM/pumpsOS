@@ -157,6 +157,12 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     pfs_mkfs();
     pfs_mount();
+     // inode and block test
+    int32_t i1 = pfs_alloc_inode();
+    int32_t i2 = pfs_alloc_inode();
+    int32_t b1 = pfs_alloc_block();
+    int32_t b2 = pfs_alloc_block();
+    printf("Alloc inodes: %d %d, blocks: %d %d\n", i1, i2, b1, b2);
 
     // printf("> ");
     // while(1) {

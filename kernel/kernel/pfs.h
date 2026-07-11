@@ -50,6 +50,10 @@ typedef struct {
 
 void pfs_mkfs(void);
 bool pfs_mount(void);
+bool pfs_read_inode(uint32_t n, inode_t* out);
+bool pfs_write_inode(uint32_t n, const inode_t* in);
+int32_t pfs_alloc_inode(void);
+int32_t pfs_alloc_block(void);
 
 // More stuff to come
 
