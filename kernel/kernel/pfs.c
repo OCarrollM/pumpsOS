@@ -20,12 +20,13 @@ void pfs_mkfs(void) {
     s->block_bitmap_sec = PFS_BLOCK_BITMAP_SEC;
     s->inode_table_sec = PFS_INODE_TABLE_SEC;
     s->data_start_sec = PFS_DATA_START_SEC;
-    s->root_inode = 0; // Root dir
+    s->root_inode = 1; // Root dir
     ata_write_sector(PFS_SUPERBLOCK_SEC, sector); // Write the sectors
 
     // inode bitmap, all free to begin with
     memset(sector, 0, 512);
     sector[0] |= 0x01; // set bit 0 as sector 0
+    sector[0] |= 0x02; 
     ata_write_sector(PFS_INODE_BITMAP_SEC, sector);
 
     // Block bitmap, all free, allocate later
@@ -41,7 +42,7 @@ void pfs_mkfs(void) {
 
     // root inode, dir
     memset(sector, 0, 512);
-    inode_t* root = (inode_t*)sector;
+    inode_t* root = (inode_t*)(sector + 1 * sizeof(inode_t));
     root->type = PFS_TYPE_DIR;
     root->size = PFS_BLOCK_SIZE;
     root->blocks[0] = 0;
@@ -50,8 +51,8 @@ void pfs_mkfs(void) {
     // root dir
     memset(sector, 0, 512);
     dirent_t* entries = (dirent_t*)sector;
-    entries[0].inode = 0; strncpy(entries[0].name, ".", 28);
-    entries[1].inode = 0; strncpy(entries[1].name, "..", 28); // These two set the typical root of . and ..
+    entries[0].inode = 1; strncpy(entries[0].name, ".", 28);
+    entries[1].inode = 1; strncpy(entries[1].name, "..", 28); // These two set the typical root of . and ..
     ata_write_sector(PFS_DATA_START_SEC + 0, sector);
 
     printf("MKFS complete: disk formatted\n"); // testing purposes
@@ -129,3 +130,117 @@ int32_t pfs_alloc_block(void) {
     }
     return -1;
 }
+
+// create write and read
+static bool pfs_dir_add(uint32_t dir_inode_num, const char* name, uint32_t inode_num) {
+    inode_t dir;
+    if (!pfs_read_inode(dir_inode_num, &dir)) return false;
+    if (dir.type != PFS_TYPE_DIR) return false;
+
+    uint32_t data_sec = sb.data_start_sec + dir.blocks[0];
+    uint8_t sector[512];
+    if (!ata_read_sector(data_sec, sector)) return false;
+
+    dirent_t* entries = (dirent_t*)sector;
+    for (int i = 0; i < 512 / (int)sizeof(dirent_t); i++) {
+        if (entries[i].inode == 0) {
+            // clean
+            entries[i].inode = inode_num;
+            strncpy(entries[i].name, name, 28);
+            entries[i].name[27] = '\0';
+            return ata_write_sector(data_sec, sector);
+        }
+    }
+    return false;
+}
+
+// Create a file by allocating inode, init as empty file and dirent to root
+int32_t pfs_create(const char* name) {
+    int32_t ino = pfs_alloc_inode();
+    if (ino < 1) return -1;
+
+    inode_t node;
+    memset(&node, 0, sizeof(node));
+    node.type = PFS_TYPE_FILE;
+    node.size = 0;
+    if (!pfs_write_inode((uint32_t)ino, &node)) return -1;
+
+    if (!pfs_dir_add(sb.root_inode, name, (uint32_t)ino)) return -1;
+
+    return ino;
+}
+
+// write data to file
+bool pfs_write_file(uint32_t ino, const uint8_t* data, uint32_t len) {
+    inode_t node;
+    if (!pfs_read_inode(ino, &node)) return false;
+    if (node.type != PFS_TYPE_FILE) return false;
+
+    // whole file write
+    uint32_t blocks_needed = (len + PFS_BLOCK_SIZE - 1) / PFS_BLOCK_SIZE;
+    if (blocks_needed > PFS_DIRECT_BLOCKS) return false;
+
+    uint32_t written = 0;
+    for (uint32_t b = 0; b < blocks_needed; b++) {
+        // allocate block for this slot if it doesn't have one
+        if (node.blocks[b] == 0) {
+            int32_t blk = pfs_alloc_block();
+            if (blk < 0) return false;
+            node.blocks[b] = (uint32_t)blk;
+        }
+        // Fill sector buffer with this chunk
+        uint8_t sector[512];
+        memset(sector, 0, 512);
+        uint32_t chunk = len - written;
+        if (chunk > PFS_BLOCK_SIZE) chunk = PFS_BLOCK_SIZE;
+        memcpy(sector, data + written, chunk);
+        if (!ata_write_sector(sb.data_start_sec + node.blocks[b], sector)) return false;
+
+        written += chunk;
+    }
+
+    node.size = len;
+    return pfs_write_inode(ino, &node);
+}
+
+// read a file
+int32_t pfs_read_file(uint32_t ino, uint8_t* out, uint32_t max) {
+    inode_t node;
+    if (!pfs_read_inode(ino, &node)) return -1;
+    if (node.type != PFS_TYPE_FILE) return -1;
+
+    uint8_t sector[512];
+    uint32_t to_read = node.size;
+    if (to_read > max) to_read = max;
+
+    uint32_t read = 0;
+    for (uint32_t b = 0; b < PFS_DIRECT_BLOCKS && read < to_read; b++) {
+        if (node.blocks[b] == 0) break;
+        if (!ata_read_sector(sb.data_start_sec + node.blocks[b], sector)) return -1;
+        uint32_t chunk = to_read - read;
+        if (chunk > PFS_BLOCK_SIZE) chunk = PFS_BLOCK_SIZE;
+        memcpy(out + read, sector, chunk);
+        
+        read += chunk;
+    }
+    return (int32_t)read;
+}
+
+// Find a file by its name
+int32_t pfs_lookup(const char* name) {
+    inode_t root;
+    if (!pfs_read_inode(sb.root_inode, &root)) return -1;
+    uint8_t sector[512];
+    if (!ata_read_sector(sb.data_start_sec + root.blocks[0], sector)) return -1;
+
+    dirent_t* entries = (dirent_t*)sector;
+    for (int i = 0; i < 512 / (int)sizeof(dirent_t); i++) {
+        if (entries[i].inode != 0 && strcmp(entries[i].name, name) == 0) {
+            return (int32_t)entries[i].inode;
+        }
+    }
+
+    return -1; // not found
+}
+
+// FILE IS DEVELOPED FROM TANEMBAUN OPERATING SYSTEMS V3

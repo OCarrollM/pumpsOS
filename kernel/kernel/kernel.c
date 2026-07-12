@@ -164,6 +164,22 @@ void kernel_main(uint32_t multiboot_info_phys) {
     int32_t b2 = pfs_alloc_block();
     printf("Alloc inodes: %d %d, blocks: %d %d\n", i1, i2, b1, b2);
 
+    // third test on files
+    int32_t ino = pfs_create("hello.txt");
+    printf("Created hello.txt as inode %d\n", ino);
+
+    const char* text = "Hello from PumpsFS";
+    pfs_write_file(ino, (const uint8_t*)text, strlen(text));
+    printf("Wrote %d bytes\n", (int)strlen(text));
+
+    int32_t found = pfs_lookup("hello.txt");
+    printf("Lookup hello.txt -> inode %d\n", found);
+
+    uint8_t buf[512];
+    int32_t bytes_read = pfs_read_file(found, buf, sizeof(buf));
+    buf[bytes_read] = '\0';
+    printf("read %d bytes: %s\n", bytes_read, buf);
+
     // printf("> ");
     // while(1) {
     //     char c = keyboard_getchar();

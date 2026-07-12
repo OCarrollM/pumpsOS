@@ -54,6 +54,10 @@ bool pfs_read_inode(uint32_t n, inode_t* out);
 bool pfs_write_inode(uint32_t n, const inode_t* in);
 int32_t pfs_alloc_inode(void);
 int32_t pfs_alloc_block(void);
+int32_t pfs_create(const char* name);
+bool pfs_write_file(uint32_t ino, const uint8_t* data, uint32_t len);
+int32_t pfs_read_file(uint32_t ino, uint8_t* out, uint32_t max);
+int32_t pfs_lookup(const char* name);
 
 // More stuff to come
 
