@@ -58,6 +58,8 @@ int32_t pfs_create(const char* name);
 bool pfs_write_file(uint32_t ino, const uint8_t* data, uint32_t len);
 int32_t pfs_read_file(uint32_t ino, uint8_t* out, uint32_t max);
 int32_t pfs_lookup(const char* name);
+uint32_t pfs_get_root_inode(void);
+uint32_t pfs_data_sector(uint32_t block);
 
 // More stuff to come
 

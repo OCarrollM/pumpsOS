@@ -97,100 +97,41 @@ void kernel_main(uint32_t multiboot_info_phys) {
     rtc_time_t now;
     rtc_read(&now);
     printf("Current time: %d-%02d-%02d %02d:%02d:%02d UTC\n", now.year, now.month, now.day, now.hour, now.minute, now.second);
-    asm volatile("sti");
+
+    if (!pfs_mount()) {
+        printf("No filesystem found, formatting disk...\n");
+        pfs_mkfs();
+        pfs_mount();
+    }
+    vfs_node_t* pfs_root = pfs_vfs_init();
+    printf("pfs_vfs_init done\n");
+    vfs_mount("disk", pfs_root);
+    printf("vfs_mount done\n");
+
+    int32_t seed_ino = pfs_create("hello.txt");
+    printf("Seed created\n");
+    if (seed_ino > 0) {
+        const char* text = "Hello from PumpsFS";
+        printf("Writing seed file\n");
+        pfs_write_file(seed_ino, (const uint8_t*)text, strlen(text));
+        printf("Seed written\n");
+    }
+    printf("Reached scheduler_init\n");
 
     // Scheduler and tasks
 
     scheduler_init();
-    //thread_create("thread-A", thread_body_finite, "AAA", PRIORITY_NORMAL);
-    //thread_create("thread-B", thread_body_forever, "BBB", PRIORITY_NORMAL);
     debugger_init();
 
-    printf("sizeof(Elf32_Ehdr) = %d (expect 52)\n", sizeof(Elf32_Ehdr));
-    printf("sizeof(Elf32_Phdr) = %d (expect 32)\n", sizeof(Elf32_Phdr));
-    vfs_node_t* n = vfs_lookup("/readme.txt");
-    if (n) {
-        Elf32_Ehdr hdr;
-        vfs_read(n, 0, sizeof(hdr), (uint8_t*)&hdr);
-        printf("validate readme.txt: %d (expect 0)\n", elf_validate(&hdr));
-    }
+    asm volatile("sti");
 
-    //task_create_user("user_test", user_payload, sizeof(user_payload), PRIORITY_NORMAL);
-    task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
-    //task_create_user_elf("fork_test", "/fork_test.elf", PRIORITY_NORMAL);
-    //task_create_user_elf("wait_test", "/wait_test.elf", PRIORITY_NORMAL);
-    //task_create_user_elf("read_test", "/read_test.elf", PRIORITY_NORMAL);
-    //task_create_user_elf("echo_test", "/echo_test.elf", PRIORITY_NORMAL);
-    task_create_user_elf("shell", "/shell.elf", PRIORITY_NORMAL);
+    // task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
+    printf("Creating shell task\n");
+    task_t* sh = task_create_user_elf("shell", "/shell.elf", PRIORITY_NORMAL);
+    printf("shell task created: %x\n", (uint32_t)sh);
     scheduler_enable_preemption();
+    printf("Preemption enabled, entering idle\n");
 
-    uint8_t sector[512];
-    if (ata_read_sector(0, sector)) {
-        printf("Sector 0 read OK. First bytes: ");
-        for (int i = 0; i < 20; i++) {
-            printf("%c", sector[i] >= 32 && sector[i] < 127 ? sector[i] : '.');
-        }
-        printf("\n");
-    } else {
-        printf("ATA read FAILED\n");
-    }
-
-    // write test
-    uint8_t wbuf[512];
-    memset(wbuf, 0, 512);
-    const char* msg = "WRITTEN BY PUMPSOS KERNEL";
-    memcpy(wbuf, msg, strlen(msg));
-
-    if (ata_write_sector(1, wbuf)) {
-        printf("Wrote sector 1.\n");
-        uint8_t rbuf[512];
-        if (ata_read_sector(1, rbuf)) {
-            printf("Read back: ");
-            for (int i = 0; i < 25; i++) {
-                printf("%c", rbuf[i] >= 32 && rbuf[i] < 127 ? rbuf[i] : '.');
-            }
-            printf("\n");
-        }
-    } else {
-        printf("ATA write FAILED\n");
-    }
-
-    pfs_mkfs();
-    pfs_mount();
-     // inode and block test
-    int32_t i1 = pfs_alloc_inode();
-    int32_t i2 = pfs_alloc_inode();
-    int32_t b1 = pfs_alloc_block();
-    int32_t b2 = pfs_alloc_block();
-    printf("Alloc inodes: %d %d, blocks: %d %d\n", i1, i2, b1, b2);
-
-    // third test on files
-    int32_t ino = pfs_create("hello.txt");
-    printf("Created hello.txt as inode %d\n", ino);
-
-    const char* text = "Hello from PumpsFS";
-    pfs_write_file(ino, (const uint8_t*)text, strlen(text));
-    printf("Wrote %d bytes\n", (int)strlen(text));
-
-    int32_t found = pfs_lookup("hello.txt");
-    printf("Lookup hello.txt -> inode %d\n", found);
-
-    uint8_t buf[512];
-    int32_t bytes_read = pfs_read_file(found, buf, sizeof(buf));
-    buf[bytes_read] = '\0';
-    printf("read %d bytes: %s\n", bytes_read, buf);
-
-    // printf("> ");
-    // while(1) {
-    //     char c = keyboard_getchar();
-    //     if(c == '\n') {
-    //         printf("\n> ");
-    //     } else if(c == '\b') {
-    //         printf("\b \b");
-    //     } else {
-    //         printf("%c", c);
-    //     }
-    // }
     while(1) {
         task_reap_terminated();
         asm volatile("hlt");

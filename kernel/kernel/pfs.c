@@ -243,4 +243,7 @@ int32_t pfs_lookup(const char* name) {
     return -1; // not found
 }
 
+uint32_t pfs_get_root_inode(void) { return sb.root_inode; }
+uint32_t pfs_data_sector(uint32_t block) { return sb.data_start_sec + block; }
+
 // FILE IS DEVELOPED FROM TANEMBAUN OPERATING SYSTEMS V3
