@@ -1,6 +1,7 @@
 // bridge from PFS to VFS layer
 #include "pfs.h"
 #include "vfs.h"
+#include "../arch/i386/ata.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -22,10 +23,10 @@ static uint32_t pfs_vfs_read(vfs_node_t* node, uint32_t offset, uint32_t size, u
 // vfs write on pfs file
 static uint32_t pfs_vfs_write(vfs_node_t* node, uint32_t offset, uint32_t size, uint8_t* buffer) {
     (void)offset;
-    if (!pfs_write_file(node->inode, buffer, size)) {
-        return size;
-    }
-    return 0;
+    printf("[pfs_write] inode=%d size=%d\n", node->inode, size);
+    bool ok = pfs_write_file(node->inode, buffer, size);
+    printf("[pfs_write] pfs_write_file returned %d\n", ok);
+    return ok ? size : 0;
 }
 
 // Fill vfs node for a pfs file with a given inode and name
@@ -82,6 +83,17 @@ static struct dirent* pfs_vfs_readdir(vfs_node_t* node, uint32_t index) {
     return NULL;
 }
 
+static vfs_node_t* pfs_vfs_create(vfs_node_t* dir, const char* name) {
+    (void)dir;
+    if (pfs_lookup(name) >= 0) return NULL;
+
+    int32_t ino = pfs_create(name);
+    if (ino < 0) return NULL;
+
+    pfs_make_node(&pfs_lookup_node, (uint32_t)ino, name);
+    return &pfs_lookup_node;
+}
+
 // root VFS node
 static vfs_node_t pfs_root_node;
 
@@ -91,5 +103,6 @@ vfs_node_t* pfs_vfs_init(void) {
     pfs_root_node.flags = VFS_DIRECTORY;
     pfs_root_node.finddir = pfs_vfs_finddir;
     pfs_root_node.readdir = pfs_vfs_readdir;
+    pfs_root_node.create = pfs_vfs_create;
     return &pfs_root_node;
 }

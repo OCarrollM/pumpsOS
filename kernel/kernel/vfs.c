@@ -113,3 +113,26 @@ void vfs_mount(const char* prefix, vfs_node_t* root) {
         }
     }
 }
+
+// create a file at a given path (like touch command)
+vfs_node_t* vfs_create(const char* path) {
+    if (path[0] == '/') path++;
+
+    char first[VFS_NAME_MAX];
+    int i = 0;
+    const char* p = path;
+    while (*p && *p != '/' && i < VFS_NAME_MAX - 1) first[i++] = *p++;
+    first[i] = '\0';
+
+    for (int m = 0; m < MAX_MOUNTS; m++) {
+        if (mounts[m].used && strcmp(mounts[m].prefix, first) == 0) {
+            if (*p == '/') p++;
+            if (*p == '\0') return NULL;
+            if (mounts[m].root->create) {
+                return mounts[m].root->create(mounts[m].root, p);
+            }
+            return NULL;
+        }
+    }
+    return NULL; // not under a writable mount
+}

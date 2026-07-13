@@ -49,7 +49,8 @@ typedef struct vfs_node {
     close_func_t close;
     readdir_func_t readdir;
     finddir_func_t finddir;
-
+    
+    struct vfs_node* (*create)(struct vfs_node* dir, const char* name);
     struct vfs_node* ptr; // Used by mount points
 } vfs_node_t;
 
@@ -63,6 +64,7 @@ void vfs_open(vfs_node_t* node);
 void vfs_close(vfs_node_t* node);
 struct dirent* vfs_readdir(vfs_node_t* node, uint32_t index);
 vfs_node_t* vfs_finddir(vfs_node_t* node, const char* name);
+vfs_node_t* vfs_create(const char* path);
 
 // Look up a node by path and return NULL if not found
 vfs_node_t* vfs_lookup(const char* path);

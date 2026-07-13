@@ -14,6 +14,12 @@
 #define SYS_THREAD_EXIT 10
 #define SYS_READDIR 11
 
+#define O_RDONLY 0x0000
+#define O_WRONLY 0x0001
+#define O_RDWR 0x0002
+#define O_CREAT 0x0100
+#define O_TRUNC 0x0200
+
 int sys_write(int fd, const void* buf, int len);
 int sys_read(int fd, void* buf, int len);
 int sys_open(const char* path, int flags);

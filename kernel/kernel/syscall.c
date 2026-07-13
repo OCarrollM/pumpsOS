@@ -22,6 +22,12 @@
 #define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
+#define O_RDONLY 0x0000
+#define O_WRONLY 0x0001
+#define O_RDWR   0x0002
+#define O_CREAT  0x0100
+#define O_TRUNC  0x0200
+
 typedef int32_t (*syscall_fn_t)(struct registers* regs);
 static uint32_t next_thread_stack_top = USER_STACK_BASE;
 
@@ -216,22 +222,32 @@ static int32_t sys_execve(struct registers* regs) {
 
 static int32_t sys_open(struct registers* regs) {
     uint32_t path_user = regs->ebx;
+    uint32_t flags = regs->ecx;
 
     if (path_user >= KERNEL_BASE) return -1;
 
     // copy path into kernel buffer
     char path[128];
-    const char* p = (const char*)path_user;
+    const char* pu = (const char*)path_user;
     size_t i = 0;
     while (i < sizeof(path) - 1) {
-        char c = p[i];
+        char c = pu[i];
         path[i++] = c;
-        if (c == '\0') break;
+        if (!c) break;
     }
     path[sizeof(path) - 1] = '\0';
 
     vfs_node_t* node = vfs_lookup(path);
+    if (!node && (flags & O_CREAT)) {
+        node = vfs_create(path);
+        if (!node) return -1;
+    }
+
     if (!node) return -1;
+
+    if ((flags & O_TRUNC) && node->write) {
+        node->write(node, 0, 0, NULL);
+    }
 
     int fd = fd_alloc(task_current(), node);
     return fd;
