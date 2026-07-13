@@ -108,13 +108,15 @@ void kernel_main(uint32_t multiboot_info_phys) {
     vfs_mount("disk", pfs_root);
     printf("vfs_mount done\n");
 
-    int32_t seed_ino = pfs_create("hello.txt");
-    printf("Seed created\n");
-    if (seed_ino > 0) {
-        const char* text = "Hello from PumpsFS";
-        printf("Writing seed file\n");
-        pfs_write_file(seed_ino, (const uint8_t*)text, strlen(text));
-        printf("Seed written\n");
+    if (pfs_lookup("hello.txt") < 0) {
+        int32_t seed_ino = pfs_create("hello.txt");
+        printf("Seed created\n");
+        if (seed_ino > 0) {
+            const char* text = "Hello from PumpsFS";
+            printf("Writing seed file\n");
+            pfs_write_file(seed_ino, (const uint8_t*)text, strlen(text));
+            printf("Seed written\n");
+        }
     }
     printf("Reached scheduler_init\n");
 

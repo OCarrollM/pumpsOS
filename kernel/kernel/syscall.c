@@ -18,6 +18,7 @@
 #define SYS_SLEEP 8 
 #define SYS_THREAD_CREATE 9
 #define SYS_THREAD_EXIT 10
+#define SYS_READDIR 11
 #define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
@@ -275,6 +276,34 @@ static int32_t sys_thread_create(struct registers* regs) {
     return t ? (int32_t)t->id : -1;
 }
 
+static int32_t sys_readdir(struct registers* regs) {
+    uint32_t path_user = regs->ebx;
+    uint32_t index = regs->ecx;
+    uint32_t name_user = regs->edx;
+
+    if (path_user >= KERNEL_BASE || name_user >= KERNEL_BASE) return -1;
+
+    // copy the path to the kernel
+    char path[128];
+    const char* p = (const char*)path_user;
+    size_t i = 0;
+    while (i < sizeof(path) - 1) { char c = p[i]; path[i++] = c; if (!c) break; }
+    path[sizeof(path) - 1] = '\0';
+
+    vfs_node_t* dir = vfs_lookup(path);
+    if (!dir) return -1;
+
+    struct dirent* de = vfs_readdir(dir, index);
+    if (!de) return -1; // after the end
+
+    // copy entry names
+    char* out = (char*)name_user;
+    size_t k = 0;
+    while (de->name[k] && k < VFS_NAME_MAX - 1) { out[k] = de->name[k]; k++; }
+    out[k] = '\0';
+    return 0;
+}
+
 static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_EXIT] = sys_exit,
     [SYS_WRITE] = sys_write,
@@ -287,6 +316,7 @@ static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_SLEEP] = sys_sleep,
     [SYS_THREAD_CREATE] = sys_thread_create,
     [SYS_THREAD_EXIT] = sys_thread_exit,
+    [SYS_READDIR] = sys_readdir,
 };
 
 void syscall_dispatch(struct registers* regs) {

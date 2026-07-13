@@ -15,7 +15,8 @@
 #define SYS_SLEEP 8
 #define SYS_CREATE_THREAD 9
 #define SYS_THREAD_EXIT 10
-#define SYSCALL_MAX 11
+#define SYS_READDIR 11
+#define SYSCALL_MAX 12
 
 void syscall_dispatch(struct registers* regs);
 void syscall_init(void);

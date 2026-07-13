@@ -12,6 +12,7 @@
 #define SYS_SLEEP 8
 #define SYS_THREAD_CREATE 9
 #define SYS_THREAD_EXIT 10
+#define SYS_READDIR 11
 
 int sys_write(int fd, const void* buf, int len);
 int sys_read(int fd, void* buf, int len);
@@ -26,5 +27,6 @@ void exit(int code);
 int main(int, char**);
 int sys_thread_create(unsigned int entry, unsigned int arg);
 void sys_thread_exit(void);
+int sys_readdir(const char* path, unsigned int index, char* name_out);
 
 #endif

@@ -86,3 +86,9 @@ void sys_thread_exit(void) {
     __asm__ volatile("int $0x80" : : "a"(SYS_THREAD_EXIT) : "memory");
     __builtin_unreachable();
 }
+
+int sys_readdir(const char* path, unsigned int index, char* name_out) {
+    int r;
+    __asm__ volatile("int $0x80" : "=a"(r) : "a"(SYS_READDIR), "b"(path), "c"(index), "d"(name_out) : "memory");
+    return r;
+}
