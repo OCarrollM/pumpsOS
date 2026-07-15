@@ -12,6 +12,7 @@
 #include "../arch/i386/ports.h"
 #include "../arch/i386/ata.h"
 #include "../arch/i386/framebuffer.h"
+#include "../arch/i386/fbcon.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -58,7 +59,7 @@ static void thread_body_finite(void* arg) {
 
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
-    printf("=== Welcome to PumpsOS ===\n\n");
+    // printf("=== Welcome to PumpsOS ===\n\n");
 
     // CPU Tables (GDT, TSS and IDT)
 
@@ -83,9 +84,11 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     // graphics mode, any text below is now pointless
     if (framebuffer_init(mboot)) {
-        fill_screen(0x0000FF);
-        draw_rect(100, 100, 250, 150, 0xFF0000);
+        // fill_screen(0x0000FF);
+        // draw_rect(100, 100, 250, 150, 0xFF0000);
+        fbcon_init();
     }
+    printf("=== Welcome to PumpsOS ===\n\n");
 
     // Kernel subsystems
     syscall_init();

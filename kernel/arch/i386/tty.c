@@ -6,6 +6,7 @@
 #include <kernel/tty.h>
 
 #include "vga.h"
+#include "../arch/i386/fbcon.h"
 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
@@ -74,9 +75,7 @@ void terminal_putchar(char c) {
 }
 
 void terminal_write(const char* data, size_t size) {
-    for (size_t i = 0; i < size; i++) {
-        terminal_putchar(data[i]);
-    }
+    fbcon_write(data, size);
 }
 
 void terminal_writestring(const char* data) {
