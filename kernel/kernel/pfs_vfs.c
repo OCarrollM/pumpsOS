@@ -20,13 +20,51 @@ static uint32_t pfs_vfs_read(vfs_node_t* node, uint32_t offset, uint32_t size, u
     return to_copy;
 }
 
+// write len bytes at a byte-offset
+bool pfs_write_file_at(uint32_t ino, uint32_t off, const uint8_t* data, uint32_t len) {
+    inode_t node;
+    if (!pfs_read_inode(ino, &node)) return false;
+    if (node.type != PFS_TYPE_FILE) return false;
+
+    uint32_t end = off + len;
+    if (end > PFS_DIRECT_BLOCKS * PFS_BLOCK_SIZE) return false;
+
+    uint32_t written = 0;
+    while (written < len) {
+        uint32_t pos = off + written;
+        uint32_t block_idx = pos / PFS_BLOCK_SIZE; // Direct block
+        uint32_t block_off = pos % PFS_BLOCK_SIZE; // offset block
+
+        // Allocate the block if the slot is empty
+        if (node.blocks[block_idx] == 0) {
+            int32_t blk = pfs_alloc_block();
+            if (blk < 0) return false;
+            node.blocks[block_idx] = (uint32_t)blk;
+        }
+
+        // read modify write the block
+        uint8_t sector[512];
+        if (!ata_read_sector(pfs_data_sector(node.blocks[block_idx]), sector)) return false;
+
+        uint32_t chunk = PFS_BLOCK_SIZE - block_off;
+        if (chunk > len - written) chunk = len - written;
+        memcpy(sector + block_off, data + written, chunk);
+
+        if (!ata_write_sector(pfs_data_sector(node.blocks[block_idx]), sector)) return false;
+
+        written += chunk;
+    }
+
+    if (end > node.size) node.size = end;
+    return pfs_write_inode(ino, &node);
+}
+
 // vfs write on pfs file
 static uint32_t pfs_vfs_write(vfs_node_t* node, uint32_t offset, uint32_t size, uint8_t* buffer) {
-    (void)offset;
-    printf("[pfs_write] inode=%d size=%d\n", node->inode, size);
-    bool ok = pfs_write_file(node->inode, buffer, size);
-    printf("[pfs_write] pfs_write_file returned %d\n", ok);
-    return ok ? size : 0;
+    if (pfs_write_file_at(node->inode, offset, buffer, size)) {
+        return size;
+    }
+    return 0;
 }
 
 // Fill vfs node for a pfs file with a given inode and name

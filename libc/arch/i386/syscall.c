@@ -92,3 +92,9 @@ int sys_readdir(const char* path, unsigned int index, char* name_out) {
     __asm__ volatile("int $0x80" : "=a"(r) : "a"(SYS_READDIR), "b"(path), "c"(index), "d"(name_out) : "memory");
     return r;
 }
+
+int sys_dup2(int from, int to) {
+    int r;
+    __asm__ volatile("int $0x80" : "=a"(r) : "a"(SYS_DUP2), "b"(from), "c"(to) : "memory");
+    return r;
+}

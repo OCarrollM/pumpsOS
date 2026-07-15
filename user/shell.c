@@ -84,6 +84,19 @@ int main(int argc, char** argv) {
             continue;
         }
 
+        // scan for output redirection ( > )
+        char* redirect_file = NULL;
+        for (int i = 0; i < n; i++) {
+            if (strcmp(args[i], ">") == 0) {
+                if (i + 1 < n) {
+                    redirect_file = args[i + 1];
+                }
+                args[i] = 0; // terminates argv when it sees >
+                n = i;
+                break;
+            }
+        }
+
         /* External command. */
         build_path(args[0], path, sizeof(path));
 
@@ -93,6 +106,16 @@ int main(int argc, char** argv) {
             continue;
         }
         if (pid == 0) {
+            if (redirect_file) {
+                // redirect if >
+                int f = sys_open(redirect_file, O_CREAT | O_WRONLY | O_TRUNC);
+                if (f < 0) {
+                    printf("Cannot open %s\n", redirect_file);
+                    return 1;
+                }
+                sys_dup2(f, 1);
+                sys_close(f);
+            }
             sys_execve(path, args);
             printf("command not found: %s\n", args[0]);
             return 1;

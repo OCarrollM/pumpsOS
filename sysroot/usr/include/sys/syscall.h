@@ -13,6 +13,7 @@
 #define SYS_THREAD_CREATE 9
 #define SYS_THREAD_EXIT 10
 #define SYS_READDIR 11
+#define SYS_DUP2 12
 
 #define O_RDONLY 0x0000
 #define O_WRONLY 0x0001
@@ -34,5 +35,6 @@ int main(int, char**);
 int sys_thread_create(unsigned int entry, unsigned int arg);
 void sys_thread_exit(void);
 int sys_readdir(const char* path, unsigned int index, char* name_out);
+int sys_dup2(int from, int to);
 
 #endif

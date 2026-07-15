@@ -19,6 +19,7 @@
 #define SYS_THREAD_CREATE 9
 #define SYS_THREAD_EXIT 10
 #define SYS_READDIR 11
+#define SYS_DUP2 12
 #define MAX_ARGS 16
 #define ARG_BUF_SIZE 1024
 
@@ -320,6 +321,20 @@ static int32_t sys_readdir(struct registers* regs) {
     return 0;
 }
 
+static int32_t sys_dup2(struct registers* regs) {
+    uint32_t from = regs->ebx;
+    uint32_t to = regs->ecx;
+    task_t* t = task_current();
+
+    if (from >= MAX_FDS || to >= MAX_FDS) return -1;
+    if (!t->fd_table[from].used) return -1;
+
+    t->fd_table[to].node = t->fd_table[from].node;
+    t->fd_table[to].offset = t->fd_table[from].offset;
+    t->fd_table[to].used = true;
+    return (int32_t)to;
+}
+
 static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_EXIT] = sys_exit,
     [SYS_WRITE] = sys_write,
@@ -333,6 +348,7 @@ static syscall_fn_t syscall_table[SYSCALL_MAX] = {
     [SYS_THREAD_CREATE] = sys_thread_create,
     [SYS_THREAD_EXIT] = sys_thread_exit,
     [SYS_READDIR] = sys_readdir,
+    [SYS_DUP2] = sys_dup2,
 };
 
 void syscall_dispatch(struct registers* regs) {
