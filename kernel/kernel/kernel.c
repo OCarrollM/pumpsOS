@@ -84,6 +84,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     // graphics mode, any text below is now pointless
     if (framebuffer_init(mboot)) {
         fill_screen(0x0000FF);
+        draw_rect(100, 100, 250, 150, 0xFF0000);
     }
 
     // Kernel subsystems
