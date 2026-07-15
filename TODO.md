@@ -73,10 +73,10 @@
     - [ ] Phase 3: Expanding
         - [x] Time
         - [x] Threads
-        - [ ] Thread Local Storage
+        - [x] Thread Local Storage
         - [ ] Symmetric MultiProcessing
-        - [ ] Secondary Storage
-        - [ ] Real Filesystems
+        - [x] Secondary Storage
+        - [x] Real Filesystems
         - [ ] Graphics
         - [ ] User Interface
         - [ ] Networking
