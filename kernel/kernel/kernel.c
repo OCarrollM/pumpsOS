@@ -11,6 +11,7 @@
 #include "../arch/i386/rtc.h"
 #include "../arch/i386/ports.h"
 #include "../arch/i386/ata.h"
+#include "../arch/i386/framebuffer.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -79,6 +80,11 @@ void kernel_main(uint32_t multiboot_info_phys) {
     pmm_init();
     vmm_init();
     heap_init();
+
+    // graphics mode, any text below is now pointless
+    if (framebuffer_init(mboot)) {
+        fill_screen(0x0000FF);
+    }
 
     // Kernel subsystems
     syscall_init();

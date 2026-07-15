@@ -1,6 +1,7 @@
 /* Declare our constants */
 .set ALIGN,     1<<0                /* Aligns modules on boundaries */
 .set MEMINFO,   1<<1                /* Provide memory map */
+.set VIDEO,     1<<2  /* video */
 .set FLAGS,     ALIGN | MEMINFO | VIDEO     /* Multiboot flag field */
 .set MAGIC,     0x1BADB002          /* Magic number, helps find header */
 .set CHECKSUM,  -(MAGIC + FLAGS)    /* Checksum to prove us */
