@@ -1,7 +1,7 @@
 /* Declare our constants */
 .set ALIGN,     1<<0                /* Aligns modules on boundaries */
 .set MEMINFO,   1<<1                /* Provide memory map */
-.set FLAGS,     ALIGN | MEMINFO     /* Multiboot flag field */
+.set FLAGS,     ALIGN | MEMINFO | VIDEO     /* Multiboot flag field */
 .set MAGIC,     0x1BADB002          /* Magic number, helps find header */
 .set CHECKSUM,  -(MAGIC + FLAGS)    /* Checksum to prove us */
 
@@ -14,6 +14,15 @@ for signiture in first 8 KiB. This can be forced
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+.long 0 /* header_addr */
+.long 0 /* load_addr */
+.long 0 /* load_end_addr */
+.long 0 /* bss_end_addr */
+.long 0 /* entry_addr */
+.long 0 /* mode_type: 0 - linear */
+.long 1024 /* width */
+.long 768 /* height */
+.long 32 /* depth */
 
 .section .bss, "aw", @nobits
     .align 4
