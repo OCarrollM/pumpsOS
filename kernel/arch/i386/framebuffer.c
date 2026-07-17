@@ -2,7 +2,7 @@
 #include "framebuffer.h"
 #include "../kernel/vmm.h"
 
-#define FB_VIRT_BASE 0xE0000000u // free virtual region to map into
+#define FB_VIRT_BASE 0xF0000000u // free virtual region to map into
 
 static uint32_t fb_virt = 0; // v base after mapping
 static uint32_t fb_width = 0;

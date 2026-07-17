@@ -88,18 +88,18 @@ void kernel_main(uint32_t multiboot_info_phys) {
         // draw_rect(100, 100, 250, 150, 0xFF0000);
         fbcon_init();
     }
-    printf("=== Welcome to PumpsOS ===\n\n");
-
+    
     // Kernel subsystems
     syscall_init();
-
+    
     vfs_root = initrd_init_from_multiboot(mboot);
     if (!vfs_root) {
         printf("No initrd loaded\n");
     }
-
+    
     // Devices / Interrupts
-
+    
+    printf("=== Welcome to PumpsOS ===\n\n");
     pic_init();
     timer_init(100);
     keyboard_init();

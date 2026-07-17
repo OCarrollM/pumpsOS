@@ -125,7 +125,7 @@ void pmm_init(void) {
     uint32_t kernel_size = kernel_phys_end - kernel_phys_start;
     pmm_mark_region_used(kernel_phys_start, kernel_size);
     
-    printf("[PMM] %d total pages, %d used, %d free (%d MB free)\n", total_pages, used_pages, total_pages - used_pages, (total_pages - used_pages) * 4 / 1024);
+    //printf("[PMM] %d total pages, %d used, %d free (%d MB free)\n", total_pages, used_pages, total_pages - used_pages, (total_pages - used_pages) * 4 / 1024);
 }
 
 uint32_t pmm_alloc_page(void) {
