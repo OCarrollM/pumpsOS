@@ -45,12 +45,14 @@ void isr_register_handler(uint8_t num, isr_handler_t handler) {
 }
 
 void isr_handler(struct registers* regs) {
-    if(isr_handlers[regs->int_no] != 0) {
+    if (isr_handlers[regs->int_no] != 0) {
         isr_handlers[regs->int_no](regs);
         return;
     }
-
     if (regs->int_no < 32) {
         panic_from_exception(regs);
+    } else {
+        /* Unhandled hardware IRQ: still EOI, or the PIC blocks it forever. */
+        pic_send_eoi(regs->int_no - 32);
     }
 }

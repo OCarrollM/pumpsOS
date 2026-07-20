@@ -13,6 +13,7 @@
 #include "../arch/i386/ata.h"
 #include "../arch/i386/framebuffer.h"
 #include "../arch/i386/fbcon.h"
+#include "../arch/i386/mouse.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -103,6 +104,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     pic_init();
     timer_init(100);
     keyboard_init();
+    mouse_init();
     console_init();
     rtc_time_t now;
     rtc_read(&now);
@@ -146,6 +148,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     while(1) {
         task_reap_terminated();
+        draw_rect(mouse_x, mouse_y, 8, 8, 0xFFFFFF);
         asm volatile("hlt");
     }
 }
