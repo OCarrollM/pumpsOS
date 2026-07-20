@@ -14,6 +14,7 @@
 #include "../arch/i386/framebuffer.h"
 #include "../arch/i386/fbcon.h"
 #include "../arch/i386/mouse.h"
+#include "../arch/i386/cursor.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -148,7 +149,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     while(1) {
         task_reap_terminated();
-        draw_rect(mouse_x, mouse_y, 8, 8, 0xFFFFFF);
+        cursor_update();
         asm volatile("hlt");
     }
 }

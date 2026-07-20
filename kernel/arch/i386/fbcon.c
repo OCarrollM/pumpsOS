@@ -2,6 +2,7 @@
 #include "fbcon.h"
 #include "framebuffer.h"
 #include "font8x16.h"
+#include "cursor.h"
 
 static uint32_t cur_x = 0; // column
 static uint16_t cur_y = 0; // row
@@ -85,7 +86,9 @@ void fbcon_putchar(char c) {
 }
 
 void fbcon_write(const char* data, size_t len) {
+    cursor_hide();
     for (size_t i = 0; i < len; i++) {
         fbcon_putchar(data[i]);
     }
+    cursor_show();
 }

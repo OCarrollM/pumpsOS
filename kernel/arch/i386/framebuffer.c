@@ -47,6 +47,11 @@ void draw_pixel(uint32_t x, uint32_t y, uint32_t colour) {
     *pixel = colour;
 }
 
+uint32_t read_pixel(uint32_t x, uint32_t y) {
+    if (!fb_virt || x >= fb_width || y >= fb_height) return 0;
+    return *(uint32_t*)(fb_virt + y * fb_pitch + x * 4);
+}
+
 void fill_screen(uint32_t colour) {
     if (!fb_virt) return;
     for (uint32_t y = 0; y < fb_height; y++) {

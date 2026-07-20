@@ -47,9 +47,6 @@ static void mouse_process_packet(void) {
 
 static void mouse_irq_handler(struct registers* regs) {
     (void)regs;
-    static int count = 0;
-    count++;
-    draw_rect(0, 0, 8, 8, (count & 1) ? 0xFF0000 : 0x00FF00);
     uint8_t data = inb(PS2_DATA);
  
     switch (packet_index) {
@@ -98,9 +95,6 @@ void mouse_init(void) {
     mouse_command(0xF4);
     uint8_t r_en = ps2_read_data();        /* expect 0xFA */
 
-    draw_rect(50,  0, 20, 20, (r_ack  == PS2_RESPONSE_ACK)          ? 0x00FF00 : 0xFF0000);
-    draw_rect(75,  0, 20, 20, (r_test == PS2_RESPONSE_SELF_TEST_OK) ? 0x00FF00 : 0xFF0000);
-    draw_rect(100, 0, 20, 20, (r_en   == PS2_RESPONSE_ACK)          ? 0x00FF00 : 0xFF0000);
     (void)r_id;
 
     isr_register_handler(MOUSE_VECTOR, mouse_irq_handler);
