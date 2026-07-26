@@ -155,6 +155,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     while(1) {
         task_reap_terminated();
+        wm_handle_mouse();
         cursor_update();
         asm volatile("hlt");
     }

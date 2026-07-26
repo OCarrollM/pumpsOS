@@ -17,8 +17,8 @@ typedef struct {
 } window_t;
 
 window_t* window_create(int32_t x, int32_t y, int32_t w, int32_t h, const char* title, uint32_t bg);
-void window_draw(window_t* win);
 void wm_redraw(void);
+void wm_handle_mouse(void);
 int32_t window_client_x(const window_t* win);
 int32_t window_client_y(const window_t* win);
 int32_t window_client_h(const window_t* win);
