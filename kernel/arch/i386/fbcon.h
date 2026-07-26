@@ -21,4 +21,6 @@ void fbcon_clear(void);
 // set fg and bg
 void fbcon_set_colour(uint32_t fb, uint32_t bg);
 
+void fbcon_draw_string_at(uint32_t px, uint32_t py, const char* s, uint32_t fg, uint32_t bg);
+
 #endif

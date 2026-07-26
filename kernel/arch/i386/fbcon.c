@@ -92,3 +92,11 @@ void fbcon_write(const char* data, size_t len) {
     }
     cursor_show();
 }
+
+void fbcon_draw_string_at(uint32_t px, uint32_t py, const char* s, uint32_t fg, uint32_t bg) {
+    while (*s) {
+        draw_glyph(px, py, *s, fg, bg);
+        px += FONT_WIDTH;
+        s++;
+    }
+}

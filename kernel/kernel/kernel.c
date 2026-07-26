@@ -15,6 +15,7 @@
 #include "../arch/i386/fbcon.h"
 #include "../arch/i386/mouse.h"
 #include "../arch/i386/cursor.h"
+#include "../arch/i386/window.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -106,6 +107,11 @@ void kernel_main(uint32_t multiboot_info_phys) {
     timer_init(100);
     keyboard_init();
     mouse_init();
+
+    window_create(150, 200, 400, 250, "PumpsOS Window", 0xE8E8E8);
+    window_create(400, 350, 350, 200, "PumpsOS Window 2", 0xD0E0D0);
+    wm_redraw();
+
     console_init();
     rtc_time_t now;
     rtc_read(&now);

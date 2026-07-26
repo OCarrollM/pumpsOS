@@ -1,0 +1,27 @@
+#ifndef ARCH_I386_WINDOW_H
+#define ARCH_I386_WINDOW_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#define MAX_WINDOWS 8
+#define WIN_BORDER 2 // Thickness
+#define WIN_TITLEBAR 20 // Height
+
+typedef struct {
+    int32_t x, y;
+    int32_t w, h;
+    char title[32];
+    uint32_t bg;
+    bool used;
+} window_t;
+
+window_t* window_create(int32_t x, int32_t y, int32_t w, int32_t h, const char* title, uint32_t bg);
+void window_draw(window_t* win);
+void wm_redraw(void);
+int32_t window_client_x(const window_t* win);
+int32_t window_client_y(const window_t* win);
+int32_t window_client_h(const window_t* win);
+int32_t window_client_w(const window_t* win);
+
+#endif
