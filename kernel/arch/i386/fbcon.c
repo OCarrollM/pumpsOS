@@ -100,3 +100,7 @@ void fbcon_draw_string_at(uint32_t px, uint32_t py, const char* s, uint32_t fg, 
         s++;
     }
 }
+
+void fbcon_draw_char_at(uint32_t px, uint32_t py, char c, uint32_t fg, uint32_t bg) {
+    draw_glyph(px, py, c, fg, bg);
+}

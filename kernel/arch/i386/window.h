@@ -8,12 +8,17 @@
 #define WIN_BORDER 2 // Thickness
 #define WIN_TITLEBAR 20 // Height
 
-typedef struct {
+struct window;
+
+typedef struct window {
     int32_t x, y;
     int32_t w, h;
     char title[32];
     uint32_t bg;
     bool used;
+
+    void (*draw_content)(struct window* win);
+    void* content;
 } window_t;
 
 window_t* window_create(int32_t x, int32_t y, int32_t w, int32_t h, const char* title, uint32_t bg);

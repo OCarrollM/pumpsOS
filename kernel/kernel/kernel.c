@@ -16,6 +16,7 @@
 #include "../arch/i386/mouse.h"
 #include "../arch/i386/cursor.h"
 #include "../arch/i386/window.h"
+#include "../arch/i386/terminal.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -108,9 +109,12 @@ void kernel_main(uint32_t multiboot_info_phys) {
     keyboard_init();
     mouse_init();
 
-    window_create(150, 200, 400, 250, "PumpsOS Window", 0xE8E8E8);
-    window_create(400, 350, 350, 200, "PumpsOS Window 2", 0xD0E0D0);
+    terminal_create(80, 80, 700, 450, "PumpsOS Terminal");
+    window_create(400, 350, 350, 200, "PumpsOS Window", 0xD0E0D0);
     wm_redraw();
+
+    task_create_user_elf("shell", "/shell.elf", PRIORITY_NORMAL);
+    scheduler_enable_preemption();
 
     console_init();
     rtc_time_t now;

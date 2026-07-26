@@ -29,6 +29,8 @@ window_t* window_create(int32_t x, int32_t y, int32_t h, int32_t w, const char* 
     win->h = h;
     win->bg = bg;
     win->used = true;
+    win->draw_content = 0;
+    win->content = 0;
     strncpy(win->title, title, sizeof(win->title) - 1);
     win->title[sizeof(win->title) - 1] = '\0';
     
@@ -54,6 +56,10 @@ void window_draw(window_t* win, bool focused) {
 
     // client part
     draw_rect(window_client_x(win), window_client_y(win), window_client_w(win), window_client_h(win), win->bg);
+
+    if (win->draw_content) {
+        win->draw_content(win);
+    }
 }
 
 void wm_redraw(void) {
@@ -66,7 +72,7 @@ void wm_redraw(void) {
 }
 
 static bool point_in_window(const window_t* w, int32_t px, int32_t py) {
-    return px >= w->x && px < w->x + w->w && py >= w->y && py < w->y + w-> h;
+    return px >= w->x && px < w->x + w->w && py >= w->y && py < w->y + w->h;
 }
 
 static bool point_in_titlebar(const window_t* w, int32_t px, int32_t py) {
