@@ -10,7 +10,7 @@
 typedef struct {
     window_t* win;
     int cols, rows;
-    char cells[TERM_MAX_COLS][TERM_MAX_ROWS];
+    char cells[TERM_MAX_ROWS][TERM_MAX_COLS];
     int cur_x, cur_y;
 } terminal_t;
 

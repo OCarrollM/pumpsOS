@@ -109,13 +109,6 @@ void kernel_main(uint32_t multiboot_info_phys) {
     keyboard_init();
     mouse_init();
 
-    terminal_create(80, 80, 700, 450, "PumpsOS Terminal");
-    window_create(400, 350, 350, 200, "PumpsOS Window", 0xD0E0D0);
-    wm_redraw();
-
-    task_create_user_elf("shell", "/shell.elf", PRIORITY_NORMAL);
-    scheduler_enable_preemption();
-
     console_init();
     rtc_time_t now;
     rtc_read(&now);
@@ -144,6 +137,9 @@ void kernel_main(uint32_t multiboot_info_phys) {
     printf("Reached scheduler_init\n");
 
     // Scheduler and tasks
+    terminal_create(80, 80, 700, 450, "PumpsOS Terminal");
+    window_create(400, 350, 350, 200, "PumpsOS Window", 0xD0E0D0);
+    wm_redraw();
 
     scheduler_init();
     debugger_init();
