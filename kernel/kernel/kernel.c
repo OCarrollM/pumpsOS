@@ -18,6 +18,7 @@
 #include "../arch/i386/window.h"
 #include "../arch/i386/terminal.h"
 #include "../arch/i386/pci.h"
+#include "../arch/i386/e1000.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -143,6 +144,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     wm_redraw();
 
     pci_scan();
+    e1000_init();
 
     scheduler_init();
     debugger_init();
