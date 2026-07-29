@@ -144,7 +144,20 @@ void kernel_main(uint32_t multiboot_info_phys) {
     wm_redraw();
 
     pci_scan();
-    e1000_init();
+    //e1000_init();
+
+    if (e1000_init()) {
+        uint8_t frame[64];
+        memset(frame, 0, sizeof(frame));
+        memset(frame, 0xFF, 6);
+        memcpy(frame + 6, e1000_mac(), 6);
+        frame[12] = 0x12; frame[13] = 0x34;
+        memcpy(frame + 14, "Hello from pumpsOS", 18);
+
+        if (e1000_send(frame, sizeof(frame))) {
+            printf("E1000 Frame sent\n");
+        }
+    }
 
     scheduler_init();
     debugger_init();

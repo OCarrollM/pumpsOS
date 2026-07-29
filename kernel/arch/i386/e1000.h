@@ -7,5 +7,7 @@
 
 bool e1000_init(void);
 const uint8_t* e1000_mac(void);
+// Transmit an ethernet frame
+bool e1000_send(const void* data, uint16_t len);
 
 #endif
