@@ -17,6 +17,7 @@
 #include "../arch/i386/cursor.h"
 #include "../arch/i386/window.h"
 #include "../arch/i386/terminal.h"
+#include "../arch/i386/pci.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -140,6 +141,8 @@ void kernel_main(uint32_t multiboot_info_phys) {
     terminal_create(80, 80, 700, 450, "PumpsOS Terminal");
     window_create(400, 350, 350, 200, "PumpsOS Window", 0xD0E0D0);
     wm_redraw();
+
+    pci_scan();
 
     scheduler_init();
     debugger_init();
