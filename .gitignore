@@ -65,3 +65,4 @@ isodir
 sysroot.DS_Store
 **/.DS_Store
 *.log
+.pcap

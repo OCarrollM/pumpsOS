@@ -33,6 +33,7 @@
 #include "../kernel/elf.h"
 #include "../kernel/console.h"
 #include "../kernel/pfs.h"
+#include "../kernel/net.h"
 
 // For ring 3
 static const uint8_t user_payload[] = {
@@ -157,6 +158,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
         if (e1000_send(frame, sizeof(frame))) {
             printf("E1000 Frame sent\n");
         }
+        arp_send_request(NET_GATEWAY_IP);
     }
 
     scheduler_init();
@@ -173,6 +175,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     while(1) {
         task_reap_terminated();
+        net_poll();
         wm_handle_mouse();
         cursor_update();
         asm volatile("hlt");
