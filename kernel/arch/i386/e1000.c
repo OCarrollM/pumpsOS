@@ -92,7 +92,7 @@ typedef struct {
     uint16_t checksum;
     uint8_t status;
     uint8_t errors;
-    uint8_t special;
+    uint16_t special;
 }__attribute__((packed)) rx_desc_t;
 
 static uint32_t mmio = 0;
@@ -116,6 +116,13 @@ static uint16_t netq_len[NETQ_SIZE];
 static volatile int netq_head = 0, netq_tail = 0;
 static uint32_t netq_dropped = 0;
 
+static volatile uint32_t rx_irq_count = 0;
+static volatile uint32_t rx_frame_count = 0;
+
+uint32_t e1000_rx_irqs(void)   { return rx_irq_count; }
+uint32_t e1000_rx_frames(void) { return rx_frame_count; }
+
+
 // register access
 static inline uint32_t e1000_read(uint32_t reg) {
     return *(volatile uint32_t*)(mmio + reg);
@@ -123,6 +130,10 @@ static inline uint32_t e1000_read(uint32_t reg) {
 static inline void e1000_write(uint32_t reg, uint32_t value) {
     *(volatile uint32_t*)(mmio + reg) = value;
 }
+
+uint32_t e1000_rdh(void)    { return e1000_read(E1000_RDH); }
+uint32_t e1000_rdt(void)    { return e1000_read(E1000_RDT); }
+uint32_t e1000_rx_cur(void) { return rx_cur; }
 
 static void e1000_detect_eeprom(void) {
     e1000_write(E1000_EERD, EERD_START);
@@ -251,6 +262,8 @@ static bool e1000_setup_rx(void) {
     e1000_write(E1000_RDBAL, rx_ring_phys);
     e1000_write(E1000_RDBAH, 0);
     e1000_write(E1000_RDLEN, RX_DESC_COUNT * sizeof(rx_desc_t));
+    printf("[RX] RDLEN=%d (expect 256) sizeof(rx_desc_t)=%d (expect 16)\n",
+       e1000_read(E1000_RDLEN), sizeof(rx_desc_t));
     e1000_write(E1000_RDH, 0);
     e1000_write(E1000_RDT, RX_DESC_COUNT - 1);
     rx_cur = 0;
@@ -285,6 +298,7 @@ static void e1000_receive(void) {
         rx_ring[rx_cur].status = 0;
         e1000_write(E1000_RDT, rx_cur);
         rx_cur = (rx_cur + 1) % RX_DESC_COUNT;
+        rx_frame_count++;
     }
 }
 
@@ -293,6 +307,7 @@ static void e1000_irq_handler(struct registers* regs) {
     uint32_t icr = e1000_read(E1000_ICR);
 
     if (icr & (ICR_RXT0 | ICR_RXDMT0 | ICR_RXO)) {
+        rx_irq_count++;
         e1000_receive();
     }
     pic_send_eoi(irq_line);

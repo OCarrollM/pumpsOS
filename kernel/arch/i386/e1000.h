@@ -13,5 +13,11 @@ const uint8_t* e1000_mac(void);
 bool e1000_send(const void* data, uint16_t len);
 bool e1000_poll_frame(uint8_t* out, uint16_t* len);
 
+uint32_t e1000_rx_irqs(void);
+uint32_t e1000_rx_frames(void);
+uint32_t e1000_rdh(void);
+uint32_t e1000_rdt(void);
+uint32_t e1000_rx_cur(void);
+
 
 #endif

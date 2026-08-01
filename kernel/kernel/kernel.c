@@ -148,16 +148,16 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //e1000_init();
 
     if (e1000_init()) {
-        uint8_t frame[64];
-        memset(frame, 0, sizeof(frame));
-        memset(frame, 0xFF, 6);
-        memcpy(frame + 6, e1000_mac(), 6);
-        frame[12] = 0x12; frame[13] = 0x34;
-        memcpy(frame + 14, "Hello from pumpsOS", 18);
+        // uint8_t frame[64];
+        // memset(frame, 0, sizeof(frame));
+        // memset(frame, 0xFF, 6);
+        // memcpy(frame + 6, e1000_mac(), 6);
+        // frame[12] = 0x12; frame[13] = 0x34;
+        // memcpy(frame + 14, "Hello from pumpsOS", 18);
 
-        if (e1000_send(frame, sizeof(frame))) {
-            printf("E1000 Frame sent\n");
-        }
+        // if (e1000_send(frame, sizeof(frame))) {
+        //     printf("E1000 Frame sent\n");
+        // }
         arp_send_request(NET_GATEWAY_IP);
     }
 
@@ -176,6 +176,14 @@ void kernel_main(uint32_t multiboot_info_phys) {
     while(1) {
         task_reap_terminated();
         net_poll();
+
+        static uint32_t ping_timer = 0;
+        if (++ping_timer > 100) {
+            ping_timer = 0;
+            net_ping(NET_GATEWAY_IP);
+        }
+        
+
         wm_handle_mouse();
         cursor_update();
         asm volatile("hlt");
