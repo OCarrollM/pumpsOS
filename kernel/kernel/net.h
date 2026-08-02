@@ -17,11 +17,15 @@ uint32_t htonl(uint32_t v);
 #define ntohs(v) htons(v)
 #define ntohl(v) htonl(v)
 
+typedef void (*udp_handler_t)(uint32_t src_ip, uint16_t src_port, const uint8_t* data, uint16_t len);
+
 uint16_t net_checksum(const void* data, uint32_t len); // 1s compliment checksum
 void arp_send_request(uint32_t target_ip); // broadcast the arp
 bool arp_lookup(uint32_t ip, uint8_t* mac_out); // look up a cached mac for an ip
 bool icmp_send_echo(uint32_t dest_ip); // Send an ICMP Echo request
 void net_ping(uint32_t dest_ip); // Safe call
 void net_poll(void); // Poll request
+bool udp_bind(uint16_t port, udp_handler_t handler);
+bool udp_send(uint32_t dst_ip, uint16_t src_port, uint16_t dst_port, const void* data, uint16_t len);
 
 #endif

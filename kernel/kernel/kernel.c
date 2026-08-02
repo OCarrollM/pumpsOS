@@ -64,6 +64,20 @@ static void thread_body_finite(void* arg) {
     /* returns -> thread_trampoline -> task_exit(0) */
 }
 
+static void udp_echo(uint32_t src_ip, uint16_t src_port, const uint8_t* data, uint16_t len) {
+    printf("[NET] UDP %d bytes from %d.%d.%d.%d:%d: ",
+           len,
+           (src_ip >> 24) & 0xFF, (src_ip >> 16) & 0xFF,
+           (src_ip >> 8) & 0xFF, src_ip & 0xFF,
+           src_port);
+    for (uint16_t i = 0; i < len && i < 40; i++) {
+        printf("%c", (data[i] >= 32 && data[i] < 127) ? data[i] : '.');
+    }
+    printf("\n");
+
+    udp_send(src_ip, 7777, src_port, data, len);
+}
+
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     // printf("=== Welcome to PumpsOS ===\n\n");
@@ -160,6 +174,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
         // }
         arp_send_request(NET_GATEWAY_IP);
     }
+    udp_bind(7777, udp_echo);
 
     scheduler_init();
     debugger_init();

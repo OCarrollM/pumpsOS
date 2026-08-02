@@ -107,7 +107,7 @@ static void print_ip(uint32_t ip) {
     printf("%d.%d.%d.%d", (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
 }
 
-static void print_mac(uint8_t* m) {
+static void print_mac(const uint8_t* m) {
     printf("%02x:%02x:%02x:%02x:%02x:%02x", m[0], m[1], m[2], m[3], m[4], m[5]);
 }
 
@@ -160,7 +160,7 @@ static void arp_send_reply(const arp_packet_t* req) {
     memcpy(arp->sha, e1000_mac(), 6);
     arp->spa = htonl(NET_OUR_IP);
     memcpy(arp->tha, req->sha, 6);
-    arp->tpa = req->sha;
+    arp->tpa = req->spa;
 
     e1000_send(frame, sizeof(frame));
 }
@@ -176,7 +176,7 @@ static void arp_handle(const uint8_t* frame, uint16_t len) {
     // Learn from it all
     arp_cache_put(spa, arp->sha);
 
-    if (oper == 1 && spa == NET_OUR_IP) {
+    if (oper == 1 && tpa == NET_OUR_IP) {
         printf("NET ARP request for us -> replying\n");
         arp_send_reply(arp);
     } else if (oper == 2) {
@@ -281,6 +281,85 @@ static void icmp_handle(uint32_t src_ip, const icmp_header_t* icmp, uint16_t icm
     }
 }
 
+// UDP
+typedef struct {
+    uint16_t src_port;
+    uint16_t dst_port;
+    uint16_t len;
+    uint16_t checksum;
+}__attribute__((packed)) udp_header_t; // 8 bytes in total, small
+
+#define UDP_MAX_BINDINGS 8
+#define UDP_MAX_PAYLOAD 1024
+
+typedef struct {
+    uint16_t port;
+    udp_handler_t handler;
+    bool used;
+} udp_binding_t; // Binder
+
+static udp_binding_t udp_bindings[UDP_MAX_BINDINGS];
+
+bool udp_bind(uint16_t port, udp_handler_t handler) {
+    for (int i = 0; i < UDP_MAX_BINDINGS; i++) {
+        if (udp_bindings[i].used && udp_bindings[i].port == port) {
+            return false;
+        }
+    }
+    for (int i = 0; i < UDP_MAX_BINDINGS; i++) {
+        if (!udp_bindings[i].used) {
+            udp_bindings[i].port = port;
+            udp_bindings[i].handler = handler;
+            udp_bindings[i].used = true;
+            printf("NET UDP bound to port %d\n", port);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool udp_send(uint32_t dst_ip, uint16_t src_port, uint16_t dst_port, const void* data, uint16_t len) {
+    if (len > UDP_MAX_PAYLOAD) return false;
+
+    uint8_t frame[sizeof(eth_header_t) + sizeof(ip_header_t) + sizeof(udp_header_t) + UDP_MAX_PAYLOAD];
+    memset(frame, 0, sizeof(eth_header_t) + sizeof(ip_header_t) + sizeof(udp_header_t));
+    udp_header_t* udp = (udp_header_t*)(frame + sizeof(eth_header_t) + sizeof(ip_header_t));
+
+    udp->src_port = htons(src_port);
+    udp->dst_port = htons(dst_port);
+    udp->len = htons(sizeof(udp_header_t) + len);
+    udp->checksum = 0;
+    memcpy((uint8_t*)udp + sizeof(udp_header_t), data, len);
+
+    return ip_send(dst_ip, IP_PROTO_UDP, frame, sizeof(udp_header_t) + len);
+}
+
+static void udp_handle(uint32_t src_ip, const udp_header_t* udp, uint16_t udp_len) {
+    if (udp_len < sizeof(udp_header_t)) return;
+
+    uint16_t dst_port = ntohs(udp->dst_port);
+    uint16_t src_port = ntohs(udp->src_port);
+
+    // Trust headers own length
+    uint16_t stated = ntohs(udp->len);
+    if (stated > udp_len) stated = udp_len;
+    uint16_t payload_len = stated - sizeof(udp_header_t);
+    const uint8_t* payload = (const uint8_t*)udp + sizeof(udp_header_t);
+
+    for (int i = 0; i < UDP_MAX_BINDINGS; i++) {
+        if (udp_bindings[i].used && udp_bindings[i].port == dst_port) {
+            udp_bindings[i].handler(src_ip, src_port, payload, payload_len);
+            return;
+        }
+    }
+
+    printf("NET UDP to unbound port %d from ", dst_port);
+    print_ip(src_ip);
+    printf(":%d (%d bytes)\n", src_port, payload_len);
+}
+
+// IP
+
 static void ip_handle(const uint8_t* frame, uint16_t len) {
     if (len < sizeof(eth_header_t) + sizeof(ip_header_t)) return;
     const ip_header_t* ip = (const ip_header_t*)(frame + sizeof(eth_header_t));
@@ -302,8 +381,12 @@ static void ip_handle(const uint8_t* frame, uint16_t len) {
     if (ip->protocol == IP_PROTO_ICMP) {
         if (payload_len < sizeof(icmp_header_t)) return;
         icmp_handle(src, (const icmp_header_t*)payload, payload_len);
+    } else if (ip->protocol == IP_PROTO_UDP) {
+        udp_handle(src, (const udp_header_t*)payload, payload_len);
     }
 }
+
+
 
 // General polling
 void net_ping(uint32_t dst_ip) {
