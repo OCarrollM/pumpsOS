@@ -192,9 +192,12 @@ static void arp_handle(const uint8_t* frame, uint16_t len) {
 static uint16_t ip_id_counter = 0;
 static bool ip_send(uint32_t dst_ip, uint8_t protocol, uint8_t* frame, uint16_t payload_len) {
     uint8_t dst_mac[6];
-    if (!arp_lookup(dst_ip, dst_mac)) {
+
+    uint32_t next_hop = ((dst_ip & 0xFFFFFF00u) == (NET_OUR_IP & 0xFFFFFF00u)) ? dst_ip : NET_GATEWAY_IP;
+
+    if (!arp_lookup(next_hop, dst_mac)) {
         printf("NET no ARP entry for ");
-        print_ip(dst_ip);
+        print_ip(next_hop);
         printf(" -- send an ARP request first please\n");
         return false;
     }
@@ -246,9 +249,9 @@ bool icmp_send_echo(uint32_t dst_ip) {
     icmp->checksum = 0;
     icmp->checksum = net_checksum(icmp, sizeof(icmp_header_t) + ICMP_PAYLOAD_LEN);
 
-    printf("NET ping ");
-    print_ip(dst_ip);
-    printf(" seq=%d\n", ntohs(icmp->sequence));
+    // printf("NET ping ");
+    // print_ip(dst_ip);
+    // printf(" seq=%d\n", ntohs(icmp->sequence));
 
     return ip_send(dst_ip, IP_PROTO_ICMP, frame, sizeof(icmp_header_t) + ICMP_PAYLOAD_LEN);
 }
@@ -270,13 +273,13 @@ static void icmp_send_reply(uint32_t dst_ip, const icmp_header_t* req, uint16_t 
 
 static void icmp_handle(uint32_t src_ip, const icmp_header_t* icmp, uint16_t icmp_len) {
     if (icmp->type == ICMP_ECHO_REPLY) {
-        printf("NET ping reply from ");
-        print_ip(src_ip);
-        printf(" seq=%d\n", ntohs(icmp->sequence));
+        //printf("NET ping reply from ");
+        //print_ip(src_ip);
+        //printf(" seq=%d\n", ntohs(icmp->sequence));
     } else if (icmp->type == ICMP_ECHO_REQUEST) {
-        printf("NET ping request from ");
-        print_ip(src_ip);
-        printf(" -> replying\n");
+        // printf("NET ping request from ");
+        // print_ip(src_ip);
+        // printf(" -> replying\n");
         icmp_send_reply(src_ip, icmp, icmp_len);
     }
 }
@@ -358,12 +361,215 @@ static void udp_handle(uint32_t src_ip, const udp_header_t* udp, uint16_t udp_le
     printf(":%d (%d bytes)\n", src_port, payload_len);
 }
 
+// TCP
+
+#define TCP_FIN (1 << 0)
+#define TCP_SYN (1 << 1)
+#define TCP_RST (1 << 2)
+#define TCP_PSH (1 << 3)
+#define TCP_ACK (1 << 4)
+
+typedef struct {
+    uint16_t src_port;
+    uint16_t dst_port;
+    uint32_t seq;
+    uint32_t ack;
+    uint8_t data_offset;
+    uint8_t flags;
+    uint16_t window;
+    uint16_t checksum;
+    uint16_t urgent;
+}__attribute__((packed)) tcp_header_t;
+
+#define TCP_WINDOW 4096
+
+static struct {
+    tcp_state_t state;
+    uint32_t remote_ip;
+    uint32_t remote_port;
+    uint16_t local_port;
+    uint32_t snd_nxt;
+    uint32_t snd_una;
+    uint32_t rcv_nxt;
+    tcp_recv_handler_t on_data;
+} tcb;
+
+tcp_state_t tcp_get_state(void) { return tcb.state; }
+
+static uint16_t tcp_checksum(uint32_t src_ip, uint32_t dst_ip, const void* tcp_seg, uint16_t tcp_len) {
+    uint32_t sum = 0;
+    const uint8_t* p = (const uint8_t*)tcp_seg;
+
+    // pseudo header
+    sum += (src_ip >> 16) & 0xFFFF;
+    sum += src_ip & 0xFFFF;
+    sum += (dst_ip >> 16) & 0xFFFF;
+    sum += dst_ip & 0xFFFF;
+    sum += IP_PROTO_TCP;
+    sum += tcp_len;
+
+    // segment
+    uint16_t len = tcp_len;
+    while (len > 1) {
+        sum += (uint32_t)((p[0] << 8) | p[1]);
+        p += 2;
+        len -= 2;
+    }
+    if (len) sum += (uint32_t)(p[0] << 8);
+
+    while (sum >> 16) sum = (sum & 0xFFFF) + (sum >> 16);
+    return htons((uint16_t)(~sum));
+}
+
+// Build and send a segment
+static bool tcp_transmit(uint8_t flags, const void* payload, uint16_t len) {
+    uint8_t frame[sizeof(eth_header_t) + sizeof(ip_header_t) + sizeof(tcp_header_t) + 1024];
+    if (len > 1024) return false;
+
+    memset(frame, 0, sizeof(eth_header_t) + sizeof(ip_header_t) + sizeof(tcp_header_t));
+    tcp_header_t* tcp = (tcp_header_t*)(frame + sizeof(eth_header_t) + sizeof(ip_header_t));
+
+    tcp->src_port = htons(tcb.local_port);
+    tcp->dst_port = htons(tcb.remote_port);
+    tcp->seq = htonl(tcb.snd_nxt);
+    tcp->ack = htonl(tcb.rcv_nxt);
+    tcp->data_offset = (sizeof(tcp_header_t) / 4) << 4;
+    tcp->flags = flags;
+    tcp->window = htons(TCP_WINDOW);
+    tcp->urgent = 0;
+
+    if (payload && len) {
+        memcpy((uint8_t*)tcp + sizeof(tcp_header_t), payload, len);
+    }
+
+    uint16_t seg_len = sizeof(tcp_header_t) + len;
+    tcp->checksum = 0;
+    tcp->checksum = tcp_checksum(NET_OUR_IP, tcb.remote_ip, tcp, seg_len);
+
+    printf("[TCP] transmitting %d bytes, flags=0x%x\n", seg_len, flags);
+    bool ok = ip_send(tcb.remote_ip, IP_PROTO_TCP, frame, seg_len);
+    printf("[TCP] ip_send returned %d\n", ok);
+    return ok;
+}
+
+bool tcp_connect(uint32_t dst_ip, uint16_t dst_port, tcp_recv_handler_t on_data) {
+    if (tcb.state != TCP_CLOSED) {
+        printf("TCP already in use\n");
+        return false;
+    }
+
+    memset(&tcb, 0, sizeof(tcb));
+    tcb.remote_ip = dst_ip;
+    tcb.remote_port = dst_port;
+    tcb.local_port = 49152 + (ip_id_counter & 0x3FF);
+    tcb.snd_nxt = 12345;
+    tcb.snd_una = tcb.snd_nxt;
+    tcb.rcv_nxt = 0;
+    tcb.on_data = on_data;
+    tcb.state = TCP_SYN_SENT;
+
+    printf("[TCP] connecting to %d.%d.%d.%d:%d from port %d\n",
+        (dst_ip >> 24) & 0xFF, (dst_ip >> 16) & 0xFF,
+        (dst_ip >> 8) & 0xFF, dst_ip & 0xFF, dst_port, tcb.local_port);
+
+    return tcp_transmit(TCP_SYN, 0, 0);
+}
+
+bool tcp_send(const void* data, uint16_t len) {
+    if (tcb.state != TCP_ESTABLISHED) {
+        printf("TCP not established\n");
+        return false;
+    }
+    return tcp_transmit(TCP_ACK | TCP_PSH, data, len);
+}
+
+void tcp_close(void) {
+    if (tcb.state == TCP_ESTABLISHED) {
+        tcp_transmit(TCP_ACK | TCP_FIN, 0, 0);
+        tcb.state = TCP_FIN_WAIT_1;
+    } else if (tcb.state == TCP_CLOSE_WAIT) {
+        tcp_transmit(TCP_ACK | TCP_FIN, 0, 0);
+        tcb.state = TCP_LAST_ACK;
+    }
+}
+
+static void tcp_handle(uint32_t src_ip, const tcp_header_t* tcp, uint16_t seg_len) {
+    printf("[TCP] seg from %x flags=0x%x len=%d\n", src_ip, tcp->flags, seg_len);
+    if (seg_len < sizeof(tcp_header_t)) return;
+    if (src_ip != tcb.remote_ip) return;
+    if (ntohs(tcp->dst_port) != tcb.local_port) return;
+
+    uint8_t flags = tcp->flags;
+    uint32_t seq = ntohl(tcp->seq);
+    uint32_t ack = ntohl(tcp->ack);
+    uint16_t hdr_len = (tcp->data_offset >> 4) * 4;
+
+    if (hdr_len > seg_len) return;
+    uint16_t data_len = seg_len - hdr_len;
+    const uint8_t* data = (const uint8_t*)tcp + hdr_len;
+
+    if (flags & TCP_RST) {
+        printf("TCP connection reset\n");
+        tcb.state = TCP_CLOSED;
+        return;
+    }
+
+    switch (tcb.state) {
+        case TCP_SYN_SENT:
+            if ((flags & TCP_SYN) && (flags & TCP_ACK)) {
+                tcb.rcv_nxt = seq + 1;
+                tcb.snd_una = ack;
+                tcb.state = TCP_ESTABLISHED;
+                tcp_transmit(TCP_ACK, 0, 0);
+                printf("TCP Established\n");
+            }
+            break;
+        case TCP_ESTABLISHED:
+            if (flags & TCP_ACK) tcb.snd_una = ack;
+            if (data_len && seq == tcb.rcv_nxt) {
+                tcb.rcv_nxt += data_len;
+                if (tcb.on_data) tcb.on_data(data, data_len);
+                tcp_transmit(TCP_ACK, 0, 0);
+            }
+            if (flags & TCP_FIN) {
+                tcb.rcv_nxt++;
+                tcp_transmit(TCP_ACK, 0, 0);
+                tcb.state = TCP_CLOSE_WAIT;
+                printf("TCP peer closed\n");
+            }
+            break;
+        case TCP_FIN_WAIT_1:
+            if (flags & TCP_ACK) tcb.state = TCP_FIN_WAIT_2;
+            if (flags & TCP_FIN) {
+                tcb.rcv_nxt++;
+                tcp_transmit(TCP_ACK, 0, 0);
+                tcb.state = TCP_TIME_WAIT;
+                printf("TCP CLOSED\n");
+            }
+            break;
+        case TCP_FIN_WAIT_2:
+            if (flags & TCP_FIN) {
+                tcb.rcv_nxt++;
+                tcp_transmit(TCP_ACK, 0, 0);
+                tcb.state = TCP_TIME_WAIT;
+                printf("TCP Closed\n");
+            }
+            break;
+        case TCP_LAST_ACK:
+            if (flags & TCP_ACK) {
+                tcb.state = TCP_CLOSED;
+                printf("TCP Closed\n");
+            }
+            break;
+    }
+}
+
 // IP
 
 static void ip_handle(const uint8_t* frame, uint16_t len) {
     if (len < sizeof(eth_header_t) + sizeof(ip_header_t)) return;
     const ip_header_t* ip = (const ip_header_t*)(frame + sizeof(eth_header_t));
-    printf("NET IP proto=%d dst=%x ours=%x\n", ip->protocol, ntohl(ip->dst_ip), NET_OUR_IP);
+    //printf("NET IP proto=%d dst=%x ours=%x\n", ip->protocol, ntohl(ip->dst_ip), NET_OUR_IP);
 
     if ((ip->version_ihl >> 4) != 4) return;
     uint32_t header_len = (ip->version_ihl & 0x0F) * 4;
@@ -383,6 +589,8 @@ static void ip_handle(const uint8_t* frame, uint16_t len) {
         icmp_handle(src, (const icmp_header_t*)payload, payload_len);
     } else if (ip->protocol == IP_PROTO_UDP) {
         udp_handle(src, (const udp_header_t*)payload, payload_len);
+    } else if (ip->protocol == IP_PROTO_TCP) {
+        tcp_handle(src, (const tcp_header_t*)payload, payload_len);
     }
 }
 

@@ -78,6 +78,12 @@ static void udp_echo(uint32_t src_ip, uint16_t src_port, const uint8_t* data, ui
     udp_send(src_ip, 7777, src_port, data, len);
 }
 
+static void http_on_data(const uint8_t* data, uint16_t len) {
+    for (uint16_t i = 0; i < len; i++) {
+        printf("%c", (data[i] == '\n' || (data[i] >= 32 && data[i] < 127)) ? data[i] : '.');
+    }
+}
+
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     // printf("=== Welcome to PumpsOS ===\n\n");
@@ -198,6 +204,20 @@ void kernel_main(uint32_t multiboot_info_phys) {
             net_ping(NET_GATEWAY_IP);
         }
         
+        static int http_stage = 0;
+        static uint32_t http_timer = 0;
+
+        if (++http_timer > 300) {
+            http_timer = 0;
+            if (http_stage == 0) {
+                tcp_connect(0x01010101, 80, http_on_data);   /* 1.1.1.1 */
+                http_stage = 1;
+            } else if (http_stage == 1 && tcp_get_state() == TCP_ESTABLISHED) {
+                const char* req = "GET / HTTP/1.0\r\nHost: 1.1.1.1\r\n\r\n";
+                tcp_send(req, strlen(req));
+                http_stage = 2;
+            }
+        }
 
         wm_handle_mouse();
         cursor_update();
