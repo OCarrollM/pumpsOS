@@ -13,6 +13,9 @@
 #define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17
 
+#define DNS_SERVER_IP 0x0A000203u
+#define DNS_PORT 53
+
 typedef enum {
     TCP_CLOSED = 0,
     TCP_SYN_SENT,
@@ -31,6 +34,7 @@ uint32_t htonl(uint32_t v);
 
 typedef void (*udp_handler_t)(uint32_t src_ip, uint16_t src_port, const uint8_t* data, uint16_t len);
 typedef void (*tcp_recv_handler_t)(const uint8_t* data, uint16_t len);
+typedef void (*dns_handler_t)(const char* name, uint32_t ip);
 
 uint16_t net_checksum(const void* data, uint32_t len); // 1s compliment checksum
 void arp_send_request(uint32_t target_ip); // broadcast the arp
@@ -43,6 +47,9 @@ bool udp_send(uint32_t dst_ip, uint16_t src_port, uint16_t dst_port, const void*
 bool tcp_connect(uint32_t dst_ip, uint16_t dst_port, tcp_recv_handler_t on_data);
 bool tcp_send(const void* data, uint16_t len);
 void tcp_close(void);
+void dns_init(void);
+bool dns_resolve(const char* name, dns_handler_t handler);
 tcp_state_t tcp_get_state(void);
+
 
 #endif

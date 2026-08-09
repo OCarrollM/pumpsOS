@@ -84,6 +84,14 @@ static void http_on_data(const uint8_t* data, uint16_t len) {
     }
 }
 
+static void on_resolved(const char* name, uint32_t ip) {
+    if (ip == 0) {
+        printf("DNS could not resolve %s\n", name);
+        return;
+    }
+    tcp_connect(ip, 80, http_on_data);
+}
+
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     // printf("=== Welcome to PumpsOS ===\n\n");
@@ -168,19 +176,11 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //e1000_init();
 
     if (e1000_init()) {
-        // uint8_t frame[64];
-        // memset(frame, 0, sizeof(frame));
-        // memset(frame, 0xFF, 6);
-        // memcpy(frame + 6, e1000_mac(), 6);
-        // frame[12] = 0x12; frame[13] = 0x34;
-        // memcpy(frame + 14, "Hello from pumpsOS", 18);
-
-        // if (e1000_send(frame, sizeof(frame))) {
-        //     printf("E1000 Frame sent\n");
-        // }
-        arp_send_request(NET_GATEWAY_IP);
+        arp_send_request(NET_GATEWAY_IP);      /* 10.0.2.2, already there */
+        arp_send_request(0x0A000203);          /* 10.0.2.3, QEMU's DNS */
+        dns_init();
+        udp_bind(7777, udp_echo);
     }
-    udp_bind(7777, udp_echo);
 
     scheduler_init();
     debugger_init();
@@ -210,7 +210,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
         if (++http_timer > 300) {
             http_timer = 0;
             if (http_stage == 0) {
-                tcp_connect(0x01010101, 80, http_on_data);   /* 1.1.1.1 */
+                dns_resolve("example.com", on_resolved);  
                 http_stage = 1;
             } else if (http_stage == 1 && tcp_get_state() == TCP_ESTABLISHED) {
                 const char* req = "GET / HTTP/1.0\r\nHost: 1.1.1.1\r\n\r\n";

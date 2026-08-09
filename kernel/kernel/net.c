@@ -361,6 +361,205 @@ static void udp_handle(uint32_t src_ip, const udp_header_t* udp, uint16_t udp_le
     printf(":%d (%d bytes)\n", src_port, payload_len);
 }
 
+// DNS
+#define DNS_LOCAL_PORT 49500
+#define DNS_MAX_NAME 255
+#define DNS_MAX_JUMPS 16
+#define DNS_TYPE_A 1
+#define DNS_CLASS_IN 1
+#define DNS_FLAG_RD 0x0100
+#define DNS_FLAG_QR 0x8000
+#define DNS_RCODE_MASK 0x000F
+
+typedef struct {
+    uint16_t id;
+    uint16_t flags;
+    uint16_t qdcount; // Questions
+    uint16_t ancount; // Answers
+    uint16_t nscount; // Authority
+    uint16_t arcount; // Additional
+}__attribute__((packed)) dns_header_t;
+
+static struct {
+    bool pending;
+    uint16_t id;
+    char name[DNS_MAX_NAME];
+    dns_handler_t handler;
+} dns_query;
+
+static uint16_t dns_next_id = 0x1000;
+
+// Using example.com as an example
+static uint16_t dns_write_name(uint8_t* out, const char* name) {
+    uint16_t pos = 0;
+    const char* label = name;
+
+    while (*label) {
+        uint8_t len = 0;
+        while (label[len] && label[len] != '.') len++;
+        if (len == 0 || len > 63) return 0;
+
+        out[pos++] = len;
+        for (uint8_t i = 0; i < len; i++) {
+            out[pos++] = (uint8_t)label[i];
+        }
+
+        label += len;
+        if (*label == '.') label++;
+    }
+
+    out[pos++] = 0;
+    return pos;
+}
+
+// decode our example.com at an offset
+static uint16_t dns_read_name(const uint8_t* msg, uint16_t msg_len, uint16_t offset, char* out, uint16_t out_size) {
+    uint16_t pos = offset;
+    uint16_t consumed = 0;
+    bool jumped = false;
+    int jumps = 0;
+    uint16_t outpos = 0;
+
+    while (pos < msg_len) {
+        uint8_t len = msg[pos];
+
+        if (len == 0) {
+            if (!jumped) consumed++;
+            break;
+        }
+
+        if ((len & 0xC0) == 0xC0) {
+            // Compression pointer
+            if (pos + 1 >= msg_len) break;
+            uint16_t ptr = (uint16_t)(((len & 0x3F) << 8) | msg[pos + 1]);
+            if (!jumped) consumed += 2;
+            if (++jumps > DNS_MAX_JUMPS) break;
+            pos = ptr;
+            jumped = true;
+            continue;
+        }
+
+        // Normal label
+        if (pos + 1 + len > msg_len) break;
+        if (!jumped) consumed += 1 + len;
+
+        if (outpos && outpos + 1 < out_size) out[outpos++] = '.';
+        for (uint8_t i = 0; i < len && outpos + 1 < out_size; i++) {
+            out[outpos++] = (char)msg[pos + 1 + i];
+        }
+        pos += 1 + len;
+    }
+
+    if (outpos < out_size) out[outpos] = '\0';
+    return consumed;
+}
+
+// skip a name ithout decoding
+static uint16_t dns_skip_name(const uint8_t* msg, uint16_t msg_len, uint16_t offset) {
+    char scratch[DNS_MAX_NAME];
+    return dns_read_name(msg, msg_len, offset, scratch, sizeof(scratch));
+}
+
+static void dns_on_response(uint32_t src_ip, uint16_t src_port, const uint8_t* data, uint16_t len) {
+    (void)src_ip; (void)src_port;
+
+    if (!dns_query.pending) return;
+    if (len < sizeof(dns_header_t)) return;
+
+    const dns_header_t* hdr = (const dns_header_t*)data;
+    if (ntohs(hdr->id) != dns_query.id) return;
+
+    uint16_t flags = ntohs(hdr->flags);
+    if (!(flags & DNS_FLAG_QR)) return;
+    
+    if (flags & DNS_RCODE_MASK) {
+        printf("DNS server returned error %d\n", flags & DNS_RCODE_MASK);
+        dns_query.pending = false;
+        if (dns_query.handler) dns_query.handler(dns_query.name, 0);
+        return;
+    }
+
+    uint16_t qdcount = ntohs(hdr->qdcount);
+    uint16_t ancount = ntohs(hdr->ancount);
+    uint16_t pos = sizeof(dns_header_t);
+
+    for (uint16_t i = 0; i < qdcount && pos < len; i++) {
+        pos += dns_skip_name(data, len, pos);
+        pos += 4;
+    }
+
+    for (uint16_t i = 0; i < qdcount && pos < len; i++) {
+        char rec_name[DNS_MAX_NAME];
+        pos += dns_read_name(data, len, pos, rec_name, sizeof(rec_name));
+
+        if (pos + 10 > len) break;
+        uint16_t type = (uint16_t)((data[pos] << 8) | data[pos + 1]);
+        uint16_t rdlength = (uint16_t)((data[pos + 8] << 8) | data[pos + 9]);
+        pos += 10;
+
+        if (type == DNS_TYPE_A && rdlength == 4 && pos + 4 <= len) {
+            uint32_t ip = ((uint32_t)data[pos] << 24) |
+                        ((uint32_t)data[pos + 1] << 16) |
+                        ((uint32_t)data[pos + 2] << 8) |
+                        ((uint32_t)data[pos + 3]);
+            printf("DNS %s is ", rec_name);
+            print_ip(ip);
+            printf("\n");
+
+            dns_query.pending = false;
+            if (dns_query.handler) dns_query.handler(dns_query.name, ip);
+            return;
+        }
+
+        pos += rdlength;
+    }
+
+    printf("DNS no A record found\n");
+    dns_query.pending = false;
+    if (dns_query.handler) dns_query.handler(dns_query.name, 0);
+}
+
+void dns_init(void) {
+    dns_query.pending = false;
+    udp_bind(DNS_LOCAL_PORT, dns_on_response);
+}
+
+bool dns_resolve(const char* name, dns_handler_t handler) {
+    if (dns_query.pending) {
+        printf("DNS a lookup is already in flight\n");
+        return false;
+    }
+
+    uint8_t msg[sizeof(dns_header_t) + DNS_MAX_NAME + 4];
+    dns_header_t* hdr = (dns_header_t*)msg;
+
+    dns_query.id = dns_next_id++;
+    hdr->id = htons(dns_query.id);
+    hdr->flags = htons(DNS_FLAG_RD);
+    hdr->qdcount = htons(1);
+    hdr->ancount = 0;
+    hdr->nscount = 0;
+    hdr->arcount = 0;
+
+    uint16_t pos = sizeof(dns_header_t);
+    uint16_t namelen = dns_write_name(msg + pos, name);
+    if (namelen == 0) return false;
+    pos += namelen;
+    
+    msg[pos++] = 0; msg[pos++] = DNS_TYPE_A;
+    msg[pos++] = 0; msg[pos++] = DNS_CLASS_IN;
+
+    uint16_t i = 0;
+    while (name[i] && i < DNS_MAX_NAME - 1) { dns_query.name[i] = name[i]; i++; }
+    dns_query.name[i] = '\0';
+    dns_query.handler = handler;
+    dns_query.pending = true;
+
+    printf("DNS looking up %s\n", name);
+
+    return udp_send(DNS_SERVER_IP, DNS_LOCAL_PORT, DNS_PORT, msg, pos);
+}
+
 // TCP
 
 #define TCP_FIN (1 << 0)
