@@ -52,24 +52,23 @@ typedef struct {
 #define BDL_IOC (1 << 15)
 #define BDL_BUP (1 << 14)
 
+#define NUM_BUFFERS 4
+#define BUF_BYTES 0x1000
+#define BUF_SAMPLES (BUF_BYTES / sizeof(int16_t))
+#define BUF_FRAMES (BUF_SAMPLES / AC97_CHANNELS)
+
 static uint16_t nam_base = 0; // Mixer port base
 static uint16_t nabm_base = 0; // bus master port base
 static volatile bdl_entry_t* bdl = 0;
 static uint32_t bdl_phys = 0;
-static uint16_t* audio_buf = 0;
-static uint32_t audio_buf_phys = 0;
-static uint32_t audio_dma_virt = VMEM_AUDIO_DMA;
+static int16_t* buf_virt[NUM_BUFFERS];
+static uint32_t buf_phys[NUM_BUFFERS];
 
-static const int16_t sine_table[64] = {
-         0,    980,   1950,   2902,   3826,   4713,   5555,   6343,
-      7071,   7730,   8314,   8819,   9238,   9569,   9807,   9951,
-     10000,   9951,   9807,   9569,   9238,   8819,   8314,   7730,
-      7071,   6343,   5555,   4713,   3826,   2902,   1950,    980,
-         0,   -980,  -1950,  -2902,  -3826,  -4713,  -5555,  -6343,
-     -7071,  -7730,  -8314,  -8819,  -9238,  -9569,  -9807,  -9951,
-    -10000,  -9951,  -9807,  -9569,  -9238,  -8819,  -8314,  -7730,
-     -7071,  -6343,  -5555,  -4713,  -3826,  -2902,  -1950,   -980,
-};
+static ac97_fill_t fill_cb = 0;
+static bool playing = false;
+static uint8_t next_buf = 0;
+
+static uint32_t audio_dma_virt = VMEM_AUDIO_DMA;
 
 static void ac97_delay(void) {
     for (volatile int i = 0; i < 100000; i++) { }
@@ -83,11 +82,13 @@ static uint32_t alloc_audio_page(uint32_t* virt_out) {
         pmm_free_page(phys);
         return 0;
     }
-    memset((void*)virt, 0, 0x1000);
-    audio_dma_virt += 0x1000;
+    memset((void*)virt, 0, BUF_BYTES);
+    audio_dma_virt += BUF_BYTES;
     *virt_out = virt;
     return phys;
 }
+
+bool ac97_is_playing(void) { return playing; }
 
 bool ac97_init(void) {
     pci_device_t dev;
@@ -126,32 +127,35 @@ bool ac97_init(void) {
     if (!bdl_phys) return false;
     bdl = (volatile bdl_entry_t*)virt;
 
-    audio_buf_phys = alloc_audio_page(&virt);
-    if (!audio_buf_phys) return false;
-    audio_buf = (int16_t*)virt;
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        buf_phys[i] = alloc_audio_page(&virt);
+        if (!buf_phys[i]) return false;
+        buf_virt[i] = (int16_t*)virt;
+    }
 
-    printf("AC97 BDL at phys 0x%x, buffer 0x%x\n", bdl_phys, audio_buf_phys);
-    printf("AC97 codec ready!\n");
+    printf("AC97 %d buffers of %d frames (~%dms each)\n", NUM_BUFFERS, (int)BUF_FRAMES, (int)(BUF_FRAMES * 1000 / AC97_SAMPLE_RATE));
+    printf("AC97 codec ready\n");
     return true;
 }
 
-bool ac97_play_tone(uint32_t freq_hz, uint32_t ms) {
-    if (!bdl || !audio_buf) return false;
-    (void)ms; // abuot 21ms
+static bool refill(uint8_t i) {
+    uint32_t got = fill_cb ? fill_cb(buf_virt[i], BUF_FRAMES) : 0;
+    if (got == 0) return false;
 
-    const uint32_t total_samples = 4096 / sizeof(int16_t);
-    const uint32_t frames = total_samples / CHANNELS;
-
-    // steps through a table at a fast speed to produce a frequency
-    uint32_t phase = 0;
-    uint32_t step = (freq_hz * 64 * 65536) / SAMPLE_RATE;
-
-    for (uint32_t i = 0; i < frames; i++) {
-        int16_t s = sine_table[(phase >> 16) & 63];
-        audio_buf[i * 2] = s;
-        audio_buf[i * 2 + 1] = s;
-        phase += step;
+    if (got < BUF_FRAMES) {
+        memset(buf_virt[i] + got * AC97_CHANNELS, 0, (BUF_FRAMES - got) * AC97_CHANNELS * sizeof(int16_t));
     }
+
+    bdl[i].addr = buf_phys[i];
+    bdl[i].samples = (uint16_t)BUF_SAMPLES;
+    bdl[i].control = BDL_IOC;
+    return true;
+}
+
+bool ac97_play(ac97_fill_t fill) {
+    if (!bdl) return false;
+
+    fill_cb = fill;
 
     // stop and reset channel
     outb(nabm_base + NABM_PO_CR, 0);
@@ -159,14 +163,50 @@ bool ac97_play_tone(uint32_t freq_hz, uint32_t ms) {
     outb(nabm_base + NABM_PO_CR, PO_CR_RESET);
     while (inb(nabm_base + NABM_PO_CR) & PO_CR_RESET) { }
 
-    bdl[0].addr = audio_buf_phys;
-    bdl[0].samples = (uint16_t)total_samples;
-    bdl[0].control = BDL_IOC;
+    int filled = 0;
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        if (!refill((uint8_t)i)) break;
+        filled++;
+    }
+    if (filled == 0) return false;
+
+    next_buf = 0;
+    playing = true;
 
     outl(nabm_base + NABM_PO_BDBAR, bdl_phys);
-    outb(nabm_base + NABM_PO_LVI, 0);
-
-    printf("AC97 playing %d Hz\n", freq_hz);
+    outb(nabm_base + NABM_PO_LVI, (uint8_t)(filled - 1));
     outb(nabm_base + NABM_PO_CR, PO_CR_RUN);
+
     return true;
+}
+
+void ac97_stop(void) {
+    outb(nabm_base + NABM_PO_CR, 0);
+    playing = false;
+    fill_cb = 0;
+}
+
+void ac97_poll(void) {
+    if (!playing) return;
+
+    uint8_t civ = inb(nabm_base + NABM_PO_CIV);
+    uint8_t lvi = inb(nabm_base + NABM_PO_LVI);
+
+    while (lvi != (uint8_t)((civ + NUM_BUFFERS - 1) % NUM_BUFFERS)) {
+        uint8_t slot = (uint8_t)((lvi + 1) % NUM_BUFFERS);
+        if (!refill(slot)) {
+            if (inb(nabm_base + NABM_PO_SR) & PO_SR_DCH) {
+                ac97_stop();
+                printf("AC97 playback finished\n");
+            }
+            return;
+        }
+        lvi = slot;
+        outb(nabm_base + NABM_PO_LVI, lvi);
+    }
+
+    if (inb(nabm_base + NABM_PO_SR) & PO_SR_DCH) {
+        ac97_stop();
+        printf("AC97 playback finished\n");
+    }
 }

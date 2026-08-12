@@ -93,6 +93,30 @@ static void on_resolved(const char* name, uint32_t ip) {
     tcp_connect(ip, 80, http_on_data);
 }
 
+static uint32_t tone_phase = 0;
+
+static uint32_t tone_fill(int16_t* buf, uint32_t frames) {
+    static const int16_t sine[64] = {
+            0,    980,   1950,   2902,   3826,   4713,   5555,   6343,
+        7071,   7730,   8314,   8819,   9238,   9569,   9807,   9951,
+        10000,   9951,   9807,   9569,   9238,   8819,   8314,   7730,
+        7071,   6343,   5555,   4713,   3826,   2902,   1950,    980,
+            0,   -980,  -1950,  -2902,  -3826,  -4713,  -5555,  -6343,
+        -7071,  -7730,  -8314,  -8819,  -9238,  -9569,  -9807,  -9951,
+        -10000,  -9951,  -9807,  -9569,  -9238,  -8819,  -8314,  -7730,
+        -7071,  -6343,  -5555,  -4713,  -3826,  -2902,  -1950,   -980,
+    };
+    uint32_t step = (440 * 64 * 65536) / AC97_SAMPLE_RATE;
+
+    for (uint32_t i = 0; i < frames; i++) {
+        int16_t s = sine[(tone_phase >> 16) & 63];
+        buf[i * 2] = s;
+        buf[i * 2 + 1] = s;
+        tone_phase += step;
+    }
+    return frames;
+}
+
 void kernel_main(uint32_t multiboot_info_phys) {
     terminal_initialize();
     // printf("=== Welcome to PumpsOS ===\n\n");
@@ -176,8 +200,10 @@ void kernel_main(uint32_t multiboot_info_phys) {
     pci_scan();
     //e1000_init();
 
+
+
     if (ac97_init()) {
-        ac97_play_tone(440, 0);
+        ac97_play(tone_fill);
     }
 
     if (e1000_init()) {
@@ -199,10 +225,14 @@ void kernel_main(uint32_t multiboot_info_phys) {
     scheduler_enable_preemption();
     printf("Preemption enabled, entering idle\n");
 
+    
+
     while(1) {
         task_reap_terminated();
         net_poll();
+        ac97_poll();
 
+    
         static uint32_t ping_timer = 0;
         if (++ping_timer > 100) {
             ping_timer = 0;
