@@ -9,4 +9,6 @@ qemu-system-$(./target-triplet-to-arch.sh $HOST) \
     -drive file=pumpsos-disk.img,format=raw,if=ide,index=0,media=disk \
     -netdev user,id=n0,hostfwd=udp::7777-:7777 \
     -device e1000,netdev=n0 \
-    -object filter-dump,id=f0,netdev=n0,file=net.pcap
+    -object filter-dump,id=f0,netdev=n0,file=net.pcap \
+    -device AC97,audiodev=snd0 \
+    -audiodev pa,id=snd0
