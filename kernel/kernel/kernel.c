@@ -19,6 +19,7 @@
 #include "../arch/i386/terminal.h"
 #include "../arch/i386/pci.h"
 #include "../arch/i386/e1000.h"
+#include "../arch/i386/ac97.h"
 #include "../kernel/multiboot.h"
 #include "../kernel/memory_map.h"
 #include "../kernel/pmm.h"
@@ -174,6 +175,10 @@ void kernel_main(uint32_t multiboot_info_phys) {
 
     pci_scan();
     //e1000_init();
+
+    if (ac97_init()) {
+        ac97_play_tone(440, 0);
+    }
 
     if (e1000_init()) {
         arp_send_request(NET_GATEWAY_IP);      /* 10.0.2.2, already there */
