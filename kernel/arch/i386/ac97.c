@@ -52,7 +52,7 @@ typedef struct {
 #define BDL_IOC (1 << 15)
 #define BDL_BUP (1 << 14)
 
-#define NUM_BUFFERS 4
+#define NUM_BUFFERS 32
 #define BUF_BYTES 0x1000
 #define BUF_SAMPLES (BUF_BYTES / sizeof(int16_t))
 #define BUF_FRAMES (BUF_SAMPLES / AC97_CHANNELS)
@@ -188,9 +188,18 @@ void ac97_stop(void) {
 
 void ac97_poll(void) {
     if (!playing) return;
+    
+    if (inb(nabm_base + NABM_PO_SR) & PO_SR_DCH) {
+        printf("AC97 underrun\n");
+    }
 
     uint8_t civ = inb(nabm_base + NABM_PO_CIV);
     uint8_t lvi = inb(nabm_base + NABM_PO_LVI);
+    
+    static uint32_t n = 0;
+    if ((n++ % 50) == 0) {
+        printf("AC97 civ=%d lvi=%d\n", civ, lvi);
+    }
 
     while (lvi != (uint8_t)((civ + NUM_BUFFERS - 1) % NUM_BUFFERS)) {
         uint8_t slot = (uint8_t)((lvi + 1) % NUM_BUFFERS);
