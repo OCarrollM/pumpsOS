@@ -48,6 +48,8 @@ typedef struct {
     char name[28];
 } dirent_t;
 
+struct vfs_node;
+
 void pfs_mkfs(void);
 bool pfs_mount(void);
 bool pfs_read_inode(uint32_t n, inode_t* out);
@@ -60,6 +62,7 @@ int32_t pfs_read_file(uint32_t ino, uint8_t* out, uint32_t max);
 int32_t pfs_lookup(const char* name);
 uint32_t pfs_get_root_inode(void);
 uint32_t pfs_data_sector(uint32_t block);
+struct vfs_node* pfs_vfs_init(void);
 
 // More stuff to come
 

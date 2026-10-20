@@ -346,7 +346,7 @@ bool e1000_init(void) {
     }
 
     printf("E1000 card found at %d:%d.%d irq=%d\n", dev.bus, dev.device, dev.function, dev.irq_line);
-
+    irq_line = dev.irq_line;
     // let card do I/O and respond to mem reads
     pci_enable_device(&dev);
 

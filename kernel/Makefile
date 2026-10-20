@@ -45,6 +45,7 @@ kernel/console.o \
 kernel/pfs.o \
 kernel/pfs_vfs.o \
 kernel/net.o \
+kernel/wav.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

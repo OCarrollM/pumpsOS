@@ -161,7 +161,9 @@ bool ac97_play(ac97_fill_t fill) {
     outb(nabm_base + NABM_PO_CR, 0);
     ac97_delay();
     outb(nabm_base + NABM_PO_CR, PO_CR_RESET);
+    int timeout = 100000;
     while (inb(nabm_base + NABM_PO_CR) & PO_CR_RESET) { }
+    if (!timeout) printf("AC97 chnnel reset timed out\n");
 
     int filled = 0;
     for (int i = 0; i < NUM_BUFFERS; i++) {
@@ -189,17 +191,17 @@ void ac97_stop(void) {
 void ac97_poll(void) {
     if (!playing) return;
     
-    if (inb(nabm_base + NABM_PO_SR) & PO_SR_DCH) {
-        printf("AC97 underrun\n");
-    }
+    // if (inb(nabm_base + NABM_PO_SR) & PO_SR_DCH) {
+    //     printf("AC97 underrun\n");
+    // }
 
     uint8_t civ = inb(nabm_base + NABM_PO_CIV);
     uint8_t lvi = inb(nabm_base + NABM_PO_LVI);
     
-    static uint32_t n = 0;
-    if ((n++ % 50) == 0) {
-        printf("AC97 civ=%d lvi=%d\n", civ, lvi);
-    }
+    // static uint32_t n = 0;
+    // if ((n++ % 50) == 0) {
+    //     printf("AC97 civ=%d lvi=%d\n", civ, lvi);
+    // }
 
     while (lvi != (uint8_t)((civ + NUM_BUFFERS - 1) % NUM_BUFFERS)) {
         uint8_t slot = (uint8_t)((lvi + 1) % NUM_BUFFERS);

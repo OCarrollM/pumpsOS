@@ -35,6 +35,8 @@
 #include "../kernel/console.h"
 #include "../kernel/pfs.h"
 #include "../kernel/net.h"
+#include "../kernel/wav.h"
+//#include "wav_data.h"
 
 // For ring 3
 static const uint8_t user_payload[] = {
@@ -201,11 +203,6 @@ void kernel_main(uint32_t multiboot_info_phys) {
     //e1000_init();
 
 
-
-    if (ac97_init()) {
-        ac97_play(tone_fill);
-    }
-
     if (e1000_init()) {
         arp_send_request(NET_GATEWAY_IP);      /* 10.0.2.2, already there */
         arp_send_request(0x0A000203);          /* 10.0.2.3, QEMU's DNS */
@@ -217,6 +214,10 @@ void kernel_main(uint32_t multiboot_info_phys) {
     debugger_init();
 
     asm volatile("sti");
+
+    if (ac97_init()) {
+        //wav_play_memory(test_wav, test_wav_len);
+    }
 
     // task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
     printf("Creating shell task\n");
@@ -232,6 +233,12 @@ void kernel_main(uint32_t multiboot_info_phys) {
         net_poll();
         ac97_poll();
 
+        static uint32_t report = 0;
+        if (++report > 200) {
+            report = 0;
+            printf("DEBUG: ticks=%d PIC1 mask=0x%x\n", (int)timer_get_ticks(), inb(0x21));
+        }
+
     
         static uint32_t ping_timer = 0;
         if (++ping_timer > 100) {
@@ -239,20 +246,20 @@ void kernel_main(uint32_t multiboot_info_phys) {
             net_ping(NET_GATEWAY_IP);
         }
         
-        static int http_stage = 0;
-        static uint32_t http_timer = 0;
+        // static int http_stage = 0;
+        // static uint32_t http_timer = 0;
 
-        if (++http_timer > 300) {
-            http_timer = 0;
-            if (http_stage == 0) {
-                dns_resolve("example.com", on_resolved);  
-                http_stage = 1;
-            } else if (http_stage == 1 && tcp_get_state() == TCP_ESTABLISHED) {
-                const char* req = "GET / HTTP/1.0\r\nHost: 1.1.1.1\r\n\r\n";
-                tcp_send(req, strlen(req));
-                http_stage = 2;
-            }
-        }
+        // if (++http_timer > 300) {
+        //     http_timer = 0;
+        //     if (http_stage == 0) {
+        //         dns_resolve("example.com", on_resolved);  
+        //         http_stage = 1;
+        //     } else if (http_stage == 1 && tcp_get_state() == TCP_ESTABLISHED) {
+        //         const char* req = "GET / HTTP/1.0\r\nHost: 1.1.1.1\r\n\r\n";
+        //         tcp_send(req, strlen(req));
+        //         http_stage = 2;
+        //     }
+        // }
 
         wm_handle_mouse();
         cursor_update();

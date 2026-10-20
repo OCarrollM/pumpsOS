@@ -645,9 +645,9 @@ static bool tcp_transmit(uint8_t flags, const void* payload, uint16_t len) {
     tcp->checksum = 0;
     tcp->checksum = tcp_checksum(NET_OUR_IP, tcb.remote_ip, tcp, seg_len);
 
-    printf("[TCP] transmitting %d bytes, flags=0x%x\n", seg_len, flags);
+    //printf("[TCP] transmitting %d bytes, flags=0x%x\n", seg_len, flags);
     bool ok = ip_send(tcb.remote_ip, IP_PROTO_TCP, frame, seg_len);
-    printf("[TCP] ip_send returned %d\n", ok);
+    //printf("[TCP] ip_send returned %d\n", ok);
     return ok;
 }
 
@@ -693,7 +693,7 @@ void tcp_close(void) {
 }
 
 static void tcp_handle(uint32_t src_ip, const tcp_header_t* tcp, uint16_t seg_len) {
-    printf("[TCP] seg from %x flags=0x%x len=%d\n", src_ip, tcp->flags, seg_len);
+    //printf("[TCP] seg from %x flags=0x%x len=%d\n", src_ip, tcp->flags, seg_len);
     if (seg_len < sizeof(tcp_header_t)) return;
     if (src_ip != tcb.remote_ip) return;
     if (ntohs(tcp->dst_port) != tcb.local_port) return;
