@@ -36,7 +36,7 @@
 #include "../kernel/pfs.h"
 #include "../kernel/net.h"
 #include "../kernel/wav.h"
-//#include "wav_data.h"
+#include "wav_data.h"
 
 // For ring 3
 static const uint8_t user_payload[] = {
@@ -216,7 +216,7 @@ void kernel_main(uint32_t multiboot_info_phys) {
     asm volatile("sti");
 
     if (ac97_init()) {
-        //wav_play_memory(test_wav, test_wav_len);
+        wav_play_memory(test_wav, test_wav_len);
     }
 
     // task_create_user_elf("user_elf", "/hello.elf", PRIORITY_NORMAL);
