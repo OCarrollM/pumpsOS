@@ -33,6 +33,8 @@ static uint16_t wav_channels = 2;
 static volatile bool wav_playing = false;
 static volatile bool wav_file_done = false;
 
+static uint32_t silence_frames = 0;
+
 bool wav_is_playing(void) { return wav_playing; }
 
 static uint32_t src_read(uint32_t offset, uint32_t len, uint8_t* out) {
@@ -57,24 +59,23 @@ static uint32_t ring_space(void) {
     return RING_SAMPLES - ring_available() - 1;
 }
 
-static uint32_t wav_fill(int16_t* buf, uint32_t frames) { 
+// Reworking wav_fill to stop jittering after one second.
+// This version will leave slots empty on purpose to wait for the
+// next poll
+static uint32_t wav_fill(int16_t* buf, uint32_t frames) {
     uint32_t want = frames * AC97_CHANNELS;
     uint32_t have = ring_available();
 
-    if (have == 0 && wav_file_done) {
-        return 0;
-    }
+    if (have < want && !wav_file_done) return 0;
+
+    if (have == 0) return 0;
 
     uint32_t take = have < want ? have : want;
     for (uint32_t i = 0; i < take; i++) {
         buf[i] = ring[ring_head];
         ring_head = (ring_head + 1) % RING_SAMPLES;
     }
-
-    for (uint32_t i = take; i < want; i++) {
-        buf[i] = 0;
-    }
-    return frames;
+    return take / AC97_CHANNELS;
 }
 
 static void wav_read_chunk(void) {
@@ -114,16 +115,13 @@ static void wav_read_chunk(void) {
 
 static void wav_reader(void* arg) {
     (void)arg;
-    printf("[WAV] reader thread started\n");
-    uint32_t iterations = 0;
     while (wav_playing && !wav_file_done) {
-        wav_read_chunk();
-        if ((iterations++ % 50) == 0) {
-            printf("WAV iter %d, read %d of %d\n", iterations, wav_read_pos, wav_data_size);
+        while (!wav_file_done && ring_space() >= 1024) {
+            wav_read_chunk();
         }
         task_yield();
     }
-    printf("[WAV] reader finished after %d iterations\n", iterations);
+    printf("WAV reader finished\n");
 }
 
 static bool wav_parse(void) {
@@ -206,7 +204,9 @@ bool wav_start(void) {
 
     wav_playing = true;
 
-    for (int i = 0; i < 8; i++) wav_read_chunk();
+    while (!wav_file_done && ring_space() > 1024) {
+        wav_read_chunk();
+    }
 
     task_t* t = thread_create("wav-reader", wav_reader, 0, PRIORITY_NORMAL);
     printf("[WAV] thread_create returned %x\n", (uint32_t)t);

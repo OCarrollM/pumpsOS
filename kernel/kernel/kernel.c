@@ -236,15 +236,15 @@ void kernel_main(uint32_t multiboot_info_phys) {
         static uint32_t report = 0;
         if (++report > 200) {
             report = 0;
-            printf("DEBUG: ticks=%d PIC1 mask=0x%x\n", (int)timer_get_ticks(), inb(0x21));
+            //printf("DEBUG: ticks=%d PIC1 mask=0x%x\n", (int)timer_get_ticks(), inb(0x21));
         }
 
     
         static uint32_t ping_timer = 0;
-        if (++ping_timer > 100) {
-            ping_timer = 0;
-            net_ping(NET_GATEWAY_IP);
-        }
+        // if (++ping_timer > 100) {
+        //     ping_timer = 0;
+        //     net_ping(NET_GATEWAY_IP);
+        // }
         
         // static int http_stage = 0;
         // static uint32_t http_timer = 0;

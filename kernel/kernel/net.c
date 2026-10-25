@@ -139,7 +139,7 @@ void arp_send_request(uint32_t target_ip) {
     arp->spa = htonl(NET_OUR_IP);
     arp->tpa = htonl(target_ip);
 
-    printf("NET ARP: Who has ");
+    //printf("NET ARP: Who has ");
     print_ip(target_ip);
     printf("?\n");
 
@@ -177,14 +177,14 @@ static void arp_handle(const uint8_t* frame, uint16_t len) {
     arp_cache_put(spa, arp->sha);
 
     if (oper == 1 && tpa == NET_OUR_IP) {
-        printf("NET ARP request for us -> replying\n");
+        //printf("NET ARP request for us -> replying\n");
         arp_send_reply(arp);
     } else if (oper == 2) {
-        printf("NET ARP reply: ");
-        print_ip(spa);
-        printf(" is ");
-        print_mac(arp->sha);
-        printf("\n");
+        // printf("NET ARP reply: ");
+        // print_ip(spa);
+        // printf(" is ");
+        // print_mac(arp->sha);
+        // printf("\n");
     }
 }
 
